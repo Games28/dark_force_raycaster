@@ -7,7 +7,7 @@ void Wall::wallTextures()
 	sprites[1] = olc::Sprite("stonewall.png");
 	sprites[2] = olc::Sprite("bluestone.png");
 	sprites[3] = olc::Sprite( "mossystone.png");
-	sprites[4] = olc::Sprite("sand.png");
+	sprites[4] = olc::Sprite("Tatooinewindow3.png");
 	sprites[5] = olc::Sprite("redbrick.png");
 	sprites[6] = olc::Sprite("wood.png");
 
@@ -27,10 +27,33 @@ void Wall::calculateBottomAndTop(float wallDistance, int halfheight, int wallhei
 	wallfloor = halfheight + (nsliceHeight *  player.fPlayerH );
 }
 
+int Wall::gettexture(int i, int j, int height)
+{
+	int textureid = 0;
+
+	switch (height)
+	{
+	case 1:
+		textureid = texturemapOne[i][j];
+		break;
+	case 2:
+		textureid = texturemapTwo[i][j];
+		break;
+	case 3:
+		textureid = texturemapThree[i][j];
+		break;
+	case 4:
+		textureid = texturemapFour[i][j];
+		break;
+	}
+	return textureid;
+}
+
 
 
 void Wall::renderWallProjection(olc::PixelGameEngine* PGEptr, Player& player, Raycast& rays)
 {
+	//vRenderLater.clear();
 	int halfscreenwidth = WINDOW_WIDTH / 2;
 	int halfscreenheight = WINDOW_HEIGHT * player.fPlayerH + (int)player.lookupordown;
 	float anglestep = 60 / float(WINDOW_WIDTH);
@@ -41,7 +64,7 @@ void Wall::renderWallProjection(olc::PixelGameEngine* PGEptr, Player& player, Ra
 		float fViewangle = float(x - halfscreenwidth) * anglestep, fdistance;
 
 		int wallTopY, wallBottomY, nWallCeil, nWallCeil2, nWallFloor;
-		int colheight;
+		int colheight, FACE_HIT,text;
 
 		// calculated corrected distance as well as bottom and top of the wall projection - per hitpoint
 		for (int i = 0; i < (int)rays.rays[x].listinfo.size(); i++)
@@ -72,6 +95,8 @@ void Wall::renderWallProjection(olc::PixelGameEngine* PGEptr, Player& player, Ra
 			nWallCeil2 = rays.rays[x].listinfo[0].ceil_back;
 			nWallFloor = rays.rays[x].listinfo[0].bottom_front;
 			fdistance = rays.rays[x].listinfo[0].distance;
+			text = rays.rays[x].listinfo[0].texture;
+			//FACE_HIT = rays.rays[x].listinfo[0].facehit;
 			rays.Depthbuffer[x] = fdistance;
 		}
 		else {
@@ -84,7 +109,7 @@ void Wall::renderWallProjection(olc::PixelGameEngine* PGEptr, Player& player, Ra
 			rays.Depthbuffer[x] = DIST_TO_PROJ_PLANE;
 		}
 
-
+		
 		// code to debug the result of the hit list info
 		// prints the hit list info for the slice that is denoted by nTestRay (upon releasing T)
 
@@ -137,6 +162,9 @@ void Wall::renderWallProjection(olc::PixelGameEngine* PGEptr, Player& player, Ra
 						nWallCeil = rays.rays[x].listinfo[hitindex].ceil_front;
 						nWallCeil2 = rays.rays[x].listinfo[hitindex].ceil_back;
 						nWallFloor = rays.rays[x].listinfo[hitindex].bottom_front;
+						text = rays.rays[x].listinfo[hitindex].texture;
+						
+						//FACE_HIT = FACE_HIT = rays.rays[x].listinfo[hitindex].facehit;
 
 						if (y >= nWallFloor)
 						{
@@ -172,6 +200,7 @@ void Wall::renderWallProjection(olc::PixelGameEngine* PGEptr, Player& player, Ra
 					int nSampleY = (int)(fFloorProjY) % TILE_SIZE;
 
 					olc::Pixel p = sprites[0].GetPixel(nSampleX, nSampleY);
+					//rays.DrawDepth(PGEptr, rays.Depthbuffer[x], x, y, p);
 					PGEptr->Draw(x, y, p);
 				}
 				break;
@@ -188,6 +217,7 @@ void Wall::renderWallProjection(olc::PixelGameEngine* PGEptr, Player& player, Ra
 				int nSampleY = (int)(fFloorProjY) % TILE_SIZE;
 
 				olc::Pixel p = sprites[0].GetPixel(nSampleX, nSampleY);
+				//rays.DrawDepth(PGEptr, rays.Depthbuffer[x], x, y,p);
 				PGEptr->Draw(x, y, p);
 				break;
 			}
@@ -202,6 +232,7 @@ void Wall::renderWallProjection(olc::PixelGameEngine* PGEptr, Player& player, Ra
 				int nSampleX = (int)(fRoofProjX) % TILE_SIZE;
 				int nSampleY = (int)(fRoofProjY) % TILE_SIZE;
 				olc::Pixel p = sprites[3].GetPixel(nSampleX, nSampleY);
+				//rays.DrawDepth(PGEptr, rays.Depthbuffer[x], x, y, p);
 				PGEptr->Draw(x, y, p);
 				break;
 			}
@@ -228,37 +259,85 @@ void Wall::renderWallProjection(olc::PixelGameEngine* PGEptr, Player& player, Ra
 					fSampleY = relative / blocksize;
 				}
 
-				
+
 
 				float fSampleX;
 				olc::Pixel auxSample;
+				int tid = 0;
 				fSampleY = fSampleY * TILE_SIZE;
 				//working
+				int newid = 0;
+				tid = gettexture(rays.rays[x].listinfo[hitindex].mapY, rays.rays[x].listinfo[hitindex].mapX, nDisplayBlockHeight);
 				if (rays.rays[x].listinfo[hitindex].wasHitVertical) {
 					fSampleX = (int)rays.rays[x].listinfo[hitindex].wallHitY % TILE_SIZE;
-				
+
+					if (tid == 4 && rays.rays[x].listinfo[hitindex].rayRt)
+					{
+						newid = 4;
+					}
 					
+					if (tid == 4 && rays.rays[x].listinfo[hitindex].rayLt)
+					{
+						newid = 2;
+					}
+
+
 				}
 				else
 				{
 					fSampleX = (int)rays.rays[x].listinfo[hitindex].wallHitX % TILE_SIZE;
+
+					if (tid == 4 && rays.rays[x].listinfo[hitindex].rayUp)
+					{
+						tid = 3;
+					}
 					
+					if (tid == 4 && rays.rays[x].listinfo[hitindex].rayDn)
+					{
+						tid = 1;
+					}
+
 				}
 
-				
+
 				//fSampleX = int(fSampleX) % TILE_SIZE;
 				
+
 				// having both sample coordinates, get the sample and draw the pixel
-				auxSample = sprites[nDisplayBlockHeight].GetPixel(fSampleX, fSampleY);
-				PGEptr->Draw(x, y, auxSample);
+				if (newid == 4)
+				{
+					auxSample = sprites[newid].GetPixel(fSampleX, fSampleY);
+
+				
+					DelayedPixel aux = { x,y,rays.Depthbuffer[x],auxSample };
+					vRenderLater.push_back(aux);
+				}
+				else
+				{
+				
+				 auxSample = sprites[tid].GetPixel(fSampleX, fSampleY);
+				 PGEptr->Draw(x, y, auxSample);
+			     }
+
+				
+				//rays.DrawDepth(PGEptr,rays.Depthbuffer[x], x, y, auxSample);
+				
 				break;
 			}
 			}
 
 		}
 
-		//		PGEptr->DrawString(10, 50, "fLookUp  = " + std::to_string(player.lookupordown));
-		//		PGEptr->DrawString(10, 40, "fPlayerH = " + std::to_string(player.fPlayerH));
+
+	}
+
+	for (auto& elt : vRenderLater)
+	{
+		if (elt.p != olc::BLANK)
+		{
+			//rays.DrawDepth(PGEptr, elt.depth, elt.x, elt.y, elt.p);
+			PGEptr->Draw(elt.x, elt.y, elt.p);
+		}
 	}
 }
 

@@ -30,12 +30,16 @@ struct intersectInfo
 
 	// for debugging purposes
 	bool rayUp, rayDn, rayLt, rayRt;
+	
+	//direction testing
+	
 };
 
 
 struct Ray {
 	std::vector<intersectInfo> listinfo;
 };
+
 
 
 class Raycast
@@ -46,9 +50,11 @@ public:
 	void castRay(olc::PixelGameEngine* pge, float rayAngle, int stripID, Player& player, Map& map);
 	void renderMapRays(olc::PixelGameEngine* PGEptr, Player& player, int testray); // Joseph21 - added testray for debugging
 
+	void DrawDepth(olc::PixelGameEngine* pge, float fDepth, int x, int y, olc::Pixel col);
+
 public:
 	Ray rays[NUM_RAYS];
-	float* Depthbuffer = new float[WINDOW_WIDTH];
+	float* Depthbuffer = new float[WINDOW_WIDTH * WINDOW_HEIGHT];
 };
 
 #endif // !RAYCAST_H

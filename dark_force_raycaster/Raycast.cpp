@@ -10,6 +10,9 @@ void Raycast::castAllRays(olc::PixelGameEngine* pge,Player& player, Map& map)
 
 void Raycast::castRay(olc::PixelGameEngine* pge, float rayAngle, int stripID, Player& player, Map& map)
 {
+
+    //testing 
+    
 	auto normalizeAngle = [=](float* angle)
 	{
 		*angle = remainder(*angle, TWO_PI);
@@ -17,6 +20,7 @@ void Raycast::castRay(olc::PixelGameEngine* pge, float rayAngle, int stripID, Pl
 			*angle += TWO_PI;
 		}
 	};
+
 
 	auto distanceBetweenPoints = [=](float x1, float y1, float x2, float y2)
 	{
@@ -28,12 +32,16 @@ void Raycast::castRay(olc::PixelGameEngine* pge, float rayAngle, int stripID, Pl
 
 	normalizeAngle(&rayAngle);
 	float fRayAngleTan = tan( rayAngle );
-
+    float angl = 3.14159 / 180;
 	//turn in to functions bool below
 	bool isRayFacingDn = rayAngle > 0 && rayAngle < PI;
 	bool isRayFacingUp = !isRayFacingDn;
 	bool isRayFacingRt = rayAngle < 0.5 * PI || rayAngle > 1.5 * PI;
 	bool isRayFacingLt = !isRayFacingRt;
+    bool isRayDown = rayAngle > 45 * (3.14159 / 180) && rayAngle < 135 * (3.14159 / 180);
+    bool isRayUp = rayAngle > 225 * (3.14159 / 180) && rayAngle < 315 * (3.14159 / 180);
+    bool isRayRight = rayAngle < 45 * (3.14159 / 180) || rayAngle > 315 * (3.14159 / 180);
+    bool isRayLeft = rayAngle > 135 * (3.14159 / 180) && rayAngle < 225 * (3.14159 / 180);
 
 	// these variables will hold the current intersection point and the x and y step values
 	float xintercept, yintercept;
@@ -65,30 +73,18 @@ void Raycast::castRay(olc::PixelGameEngine* pge, float rayAngle, int stripID, Pl
 
 	xstep = TILE_SIZE / fRayAngleTan;
     //working
-	//xstep *= (isRayFacingLt && xstep > 0) ? -1 : 1; 
-	//xstep *= (isRayFacingRt && xstep < 0) ? -1 : 1;
-
-    //test
-    if (isRayFacingLt && xstep > 0)
-    {
-        xstep *= -1;
-        facevalue = FACE_WEST;
-    }
-    else {
-        xstep *= 1;
-        facevalue = -1;
-    }
-
-    if (isRayFacingRt && xstep < 0)
-    {
-        xstep *= -1;
-        facevalue = FACE_EAST;
-    }
-    else
-    {
-        xstep *= 1;
-        facevalue = -1;
-    }
+   
+	xstep *= (isRayFacingLt && xstep > 0) ? -1 : 1; 
+	xstep *= (isRayFacingRt && xstep < 0) ? -1 : 1; 
+    
+   // if (xstep > 0)
+   // {
+   //     facevalue = rayRt;
+   // }
+   // if(xstep < 0)
+   // {
+   //     facevalue = rayLt;
+   // }
 
 	// start DDA loop - assumption is that the player is inside the map
 	if (!map.isInsideMap( xintercept, yintercept)) {
@@ -118,7 +114,9 @@ void Raycast::castRay(olc::PixelGameEngine* pge, float rayAngle, int stripID, Pl
         hitInfo.mapX     = nXtoCheck;
         hitInfo.mapY     = nYtoCheck;
         hitInfo.height   = nextHeight;
-       hitInfo.facehit = facevalue;
+
+       
+       //hitInfo.facehit = facevalue;
 
         //code for all textures related to each level of a height thats more then 1 level
         for (int i = 1; i <= hitInfo.height; i++)
@@ -169,31 +167,19 @@ void Raycast::castRay(olc::PixelGameEngine* pge, float rayAngle, int stripID, Pl
 
 	ystep = TILE_SIZE * fRayAngleTan;
     //working
-	//ystep *= (isRayFacingUp && ystep > 0) ? -1 : 1;
-	//ystep *= (isRayFacingDn && ystep < 0) ? -1 : 1;
 
-    //test
-    if (isRayFacingUp && ystep > 0)
-    {
-        ystep *= -1;
-        facevalue = FACE_NORTH;
-    }
-    else
-    {
-        ystep *= 1;
-        facevalue = -1;
-    }
+	ystep *= (isRayFacingUp && ystep > 0) ? -1 : 1; 
+	ystep *= (isRayFacingDn && ystep < 0) ? -1 : 1; 
 
-    if (isRayFacingDn && ystep < 0)
-    {
-        ystep *= -1;
-        facevalue = FACE_SOUTH;
-    }
-    else
-    {
-        ystep *= 1;
-        facevalue = -1;
-    }
+  
+    //if (ystep < 0)
+    //{
+    //    facevalue = rayUp;
+    //}
+    //if(ystep > 0)
+    //{
+    //    facevalue = rayDn;
+    //}
 
 	// start DDA loop - assumption is that the player is inside the map
 	if (!map.isInsideMap( xintercept, yintercept)) {
@@ -224,22 +210,27 @@ void Raycast::castRay(olc::PixelGameEngine* pge, float rayAngle, int stripID, Pl
         hitInfo.mapY     = nYtoCheck;
 
         hitInfo.height   = nextHeight;
-        hitInfo.facehit = facevalue;
+        //hitInfo.facehit = facevalue;
 
         //code for all textures related to each level of a height thats more then 1 level
-        for (int i = 1; i <= hitInfo.height; i++)
-        {
-            int texture = map.getTextureMap( nXtoCheck, nYtoCheck, i);
-            hitInfo.textures.push_back(texture);
-        }
+        //for (int i = 1; i <= hitInfo.height; i++)
+        //{
+        //    int texture = map.getTextureMap( nXtoCheck, nYtoCheck, i);
+        //    hitInfo.textures.push_back(texture);
+        //}
         hitInfo.texture = map.getTextureMap( nXtoCheck, nYtoCheck, hitInfo.height);
-
+        if (hitInfo.texture == 1)
+        {
+            int i = 0;
+        }
+        hitInfo.texture = map.getTextureMap(nXtoCheck, nYtoCheck, hitInfo.height);
         hitInfo.wasHitVertical = true;
         hitInfo.distance       = distanceBetweenPoints(player.x, player.y, xintercept, yintercept);
 
 
 
         // only needed for debugging
+        
         hitInfo.rayUp = isRayFacingUp;
         hitInfo.rayDn = isRayFacingDn;
         hitInfo.rayLt = isRayFacingLt;
@@ -314,4 +305,17 @@ void Raycast::renderMapRays(olc::PixelGameEngine* PGEptr, Player& player, int te
       
 	}
 	
+}
+
+void Raycast::DrawDepth(olc::PixelGameEngine* pge, float fDepth, int x, int y, olc::Pixel col)
+{
+    if (x >= 0 && x < WINDOW_WIDTH &&
+        y >= 0 && y < WINDOW_HEIGHT)
+    {
+        if (fDepth <= Depthbuffer[(y * WINDOW_WIDTH) + x])
+        {
+            Depthbuffer[y * WINDOW_WIDTH + x] = fDepth;
+            pge->Draw(x, y, col);
+        }
+    }
 }
