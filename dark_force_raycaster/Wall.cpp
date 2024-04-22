@@ -53,7 +53,7 @@ int Wall::gettexture(int i, int j, int height)
 
 void Wall::renderWallProjection(olc::PixelGameEngine* PGEptr, Player& player, Raycast& rays)
 {
-	//vRenderLater.clear();
+	vRenderLater.clear();
 	int halfscreenwidth = WINDOW_WIDTH / 2;
 	int halfscreenheight = WINDOW_HEIGHT * player.fPlayerH + (int)player.lookupordown;
 	float anglestep = 60 / float(WINDOW_WIDTH);
@@ -264,60 +264,142 @@ void Wall::renderWallProjection(olc::PixelGameEngine* PGEptr, Player& player, Ra
 				float fSampleX;
 				olc::Pixel auxSample;
 				int tid = 0;
+				int tid2 = 0;
 				fSampleY = fSampleY * TILE_SIZE;
 				//working
 				int newid = 0;
 				tid = gettexture(rays.rays[x].listinfo[hitindex].mapY, rays.rays[x].listinfo[hitindex].mapX, nDisplayBlockHeight);
-				if (rays.rays[x].listinfo[hitindex].wasHitVertical) {
-					fSampleX = (int)rays.rays[x].listinfo[hitindex].wallHitY % TILE_SIZE;
 
-					if (tid == 4 && rays.rays[x].listinfo[hitindex].rayRt)
-					{
-						newid = 4;
-					}
-					
-					if (tid == 4 && rays.rays[x].listinfo[hitindex].rayLt)
-					{
-						newid = 2;
-					}
+				//if (tid == 4)
+				//{
+				//	tid2 = gettexture(rays.rays[x].listinfo[hitindex + 1].mapY, rays.rays[x].listinfo[hitindex].mapX, nDisplayBlockHeight);
+				//}
 
-
-				}
-				else
-				{
-					fSampleX = (int)rays.rays[x].listinfo[hitindex].wallHitX % TILE_SIZE;
-
-					if (tid == 4 && rays.rays[x].listinfo[hitindex].rayUp)
-					{
-						tid = 3;
-					}
-					
-					if (tid == 4 && rays.rays[x].listinfo[hitindex].rayDn)
-					{
-						tid = 1;
-					}
-
-				}
+				
 
 
 				//fSampleX = int(fSampleX) % TILE_SIZE;
 				
 
 				// having both sample coordinates, get the sample and draw the pixel
-				if (newid == 4)
+				if (tid == 4)
 				{
+					//delayed texture info
+					if (rays.rays[x].listinfo[hitindex].wasHitVertical) {
+						fSampleX = (int)rays.rays[x].listinfo[hitindex].wallHitY % TILE_SIZE;
+
+						if (tid == 4 && rays.rays[x].listinfo[hitindex].rayRt)
+						{
+							newid = 4;
+						}
+
+						if (tid == 4 && rays.rays[x].listinfo[hitindex].rayLt)
+						{
+							newid = 2;
+						}
+
+
+					}
+					else
+					{
+						fSampleX = (int)rays.rays[x].listinfo[hitindex].wallHitX % TILE_SIZE;
+
+						if (tid == 4 && rays.rays[x].listinfo[hitindex].rayUp)
+						{
+							tid = 3;
+						}
+
+						if (tid == 4 && rays.rays[x].listinfo[hitindex].rayDn)
+						{
+							tid = 1;
+						}
+
+					}
+
+
 					auxSample = sprites[newid].GetPixel(fSampleX, fSampleY);
 
-				
+
 					DelayedPixel aux = { x,y,rays.Depthbuffer[x],auxSample };
 					vRenderLater.push_back(aux);
+
+					//next texture to display
+					if (rays.rays[x].listinfo[hitindex + 1].wasHitVertical) {
+						fSampleX = (int)rays.rays[x].listinfo[hitindex + 1].wallHitY % TILE_SIZE;
+
+						if (rays.rays[x].listinfo[hitindex + 1].rayRt)
+						{
+							newid = 2;
+						}
+						
+						if (rays.rays[x].listinfo[hitindex + 1].rayLt) 
+						{
+							newid = 5;
+						}
+
+
+					}
+					else
+					{
+						fSampleX = (int)rays.rays[x].listinfo[hitindex  +1 ].wallHitX % TILE_SIZE;
+
+					if (rays.rays[x].listinfo[hitindex + 1].rayUp)
+					{
+						newid = 3;
+					}
+					
+					if (rays.rays[x].listinfo[hitindex + 1].rayDn)
+					{
+						newid = 1;
+					}
+
+					}
+
+					auxSample = sprites[newid].GetPixel(fSampleX, fSampleY);
+					PGEptr->Draw(x, y, auxSample);
+					
 				}
 				else
 				{
+					if (rays.rays[x].listinfo[hitindex].wasHitVertical) {
+						fSampleX = (int)rays.rays[x].listinfo[hitindex].wallHitY % TILE_SIZE;
+
+						//if (tid == 4 && rays.rays[x].listinfo[hitindex].rayRt)
+						//{
+						//	newid = 4;
+						//}
+						//
+						//if (tid == 4 && rays.rays[x].listinfo[hitindex].rayLt)
+						//{
+						//	newid = 2;
+						//}
+
+
+					}
+					else
+					{
+						fSampleX = (int)rays.rays[x].listinfo[hitindex].wallHitX % TILE_SIZE;
+
+						//if (tid == 4 && rays.rays[x].listinfo[hitindex].rayUp)
+						//{
+						//	tid = 3;
+						//}
+						//
+						//if (tid == 4 && rays.rays[x].listinfo[hitindex].rayDn)
+						//{
+						//	tid = 1;
+						//}
+
+					}
+
+					auxSample = sprites[tid].GetPixel(fSampleX, fSampleY);
+					PGEptr->Draw(x, y, auxSample);
+				}
 				
-				 auxSample = sprites[tid].GetPixel(fSampleX, fSampleY);
-				 PGEptr->Draw(x, y, auxSample);
-			     }
+				
+				
+				
+			     
 
 				
 				//rays.DrawDepth(PGEptr,rays.Depthbuffer[x], x, y, auxSample);
@@ -327,17 +409,17 @@ void Wall::renderWallProjection(olc::PixelGameEngine* PGEptr, Player& player, Ra
 			}
 
 		}
-
-
-	}
-
-	for (auto& elt : vRenderLater)
-	{
-		if (elt.p != olc::BLANK)
+		for (auto& elt : vRenderLater)
 		{
-			//rays.DrawDepth(PGEptr, elt.depth, elt.x, elt.y, elt.p);
-			PGEptr->Draw(elt.x, elt.y, elt.p);
+			if (elt.p != olc::BLANK)
+			{
+				//rays.DrawDepth(PGEptr, elt.depth, elt.x, elt.y, elt.p);
+				PGEptr->Draw(elt.x, elt.y, elt.p);
+			}
 		}
+
 	}
+
+	
 }
 
