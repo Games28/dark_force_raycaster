@@ -27,7 +27,7 @@ bool Map::mapHasWallAt(float x, float y)
 	}
 	int mapGridIndexX = floor(x / TILE_SIZE);
 	int mapGridIndexY = floor(y / TILE_SIZE);
-	return heightmap[mapGridIndexY][mapGridIndexX] != 0;
+	return blockmap[mapGridIndexY][mapGridIndexX] != 0;
 }
 
 // Joseph21 - a couple of convenience functions to safely compare floats using an error margin
@@ -89,6 +89,14 @@ void Map::renderMapGrid(olc::PixelGameEngine* PGEptr)
 			);
 		}
 	}
+}
+
+int Map::getBlockType(int x, int y)
+{
+	if (x < 0 || x >= MAP_NUM_COLS || y < 0 || y >= MAP_NUM_ROWS)
+		return 0;
+	else
+		return blockmap[y][x];
 }
 
 int Map::getFromHeightMap( int x, int y )

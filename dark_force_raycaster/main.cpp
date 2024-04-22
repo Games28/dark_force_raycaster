@@ -31,7 +31,7 @@ public:
 
 	bool OnUserCreate() override
 	{
-		map.initMap();
+		//map.initMap();
 		wall.wallTextures();
 		sprite.initSpriteinfo();
 		sprite.initsprites();

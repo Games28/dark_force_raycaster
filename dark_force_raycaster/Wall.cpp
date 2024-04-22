@@ -268,7 +268,14 @@ void Wall::renderWallProjection(olc::PixelGameEngine* PGEptr, Player& player, Ra
 				fSampleY = fSampleY * TILE_SIZE;
 				//working
 				int newid = 0;
+				int blocktype = 0;
+				int index2;
 				tid = gettexture(rays.rays[x].listinfo[hitindex].mapY, rays.rays[x].listinfo[hitindex].mapX, nDisplayBlockHeight);
+				if (tid == 4)
+				{
+					index2 = gettexture(rays.rays[x].listinfo[2].mapY, rays.rays[x].listinfo[2].mapX, nDisplayBlockHeight);
+				}
+				
 
 				//if (tid == 4)
 				//{
@@ -306,12 +313,12 @@ void Wall::renderWallProjection(olc::PixelGameEngine* PGEptr, Player& player, Ra
 
 						if (tid == 4 && rays.rays[x].listinfo[hitindex].rayUp)
 						{
-							tid = 3;
+							newid = 3;
 						}
 
 						if (tid == 4 && rays.rays[x].listinfo[hitindex].rayDn)
 						{
-							tid = 1;
+							newid = 1;
 						}
 
 					}
@@ -324,8 +331,8 @@ void Wall::renderWallProjection(olc::PixelGameEngine* PGEptr, Player& player, Ra
 					vRenderLater.push_back(aux);
 
 					//next texture to display
-					if (rays.rays[x].listinfo[hitindex + 1].wasHitVertical) {
-						fSampleX = (int)rays.rays[x].listinfo[hitindex + 1].wallHitY % TILE_SIZE;
+					if (rays.rays[x].listinfo[index2].wasHitVertical) {
+						fSampleX = (int)rays.rays[x].listinfo[index2].wallHitY % TILE_SIZE;
 
 						if (rays.rays[x].listinfo[hitindex + 1].rayRt)
 						{
@@ -341,7 +348,7 @@ void Wall::renderWallProjection(olc::PixelGameEngine* PGEptr, Player& player, Ra
 					}
 					else
 					{
-						fSampleX = (int)rays.rays[x].listinfo[hitindex  +1 ].wallHitX % TILE_SIZE;
+						fSampleX = (int)rays.rays[x].listinfo[index2].wallHitX % TILE_SIZE;
 
 					if (rays.rays[x].listinfo[hitindex + 1].rayUp)
 					{
@@ -352,7 +359,7 @@ void Wall::renderWallProjection(olc::PixelGameEngine* PGEptr, Player& player, Ra
 					{
 						newid = 1;
 					}
-
+					
 					}
 
 					auxSample = sprites[newid].GetPixel(fSampleX, fSampleY);

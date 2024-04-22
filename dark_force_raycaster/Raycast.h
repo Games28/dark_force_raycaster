@@ -27,7 +27,7 @@ struct intersectInfo
 	int ceil_back;
 
 	int facehit = -1;
-
+	int blocktype;
 	// for debugging purposes
 	bool rayUp, rayDn, rayLt, rayRt;
 	

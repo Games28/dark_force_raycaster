@@ -77,14 +77,7 @@ void Raycast::castRay(olc::PixelGameEngine* pge, float rayAngle, int stripID, Pl
 	xstep *= (isRayFacingLt && xstep > 0) ? -1 : 1; 
 	xstep *= (isRayFacingRt && xstep < 0) ? -1 : 1; 
     
-   // if (xstep > 0)
-   // {
-   //     facevalue = rayRt;
-   // }
-   // if(xstep < 0)
-   // {
-   //     facevalue = rayLt;
-   // }
+  
 
 	// start DDA loop - assumption is that the player is inside the map
 	if (!map.isInsideMap( xintercept, yintercept)) {
@@ -101,10 +94,13 @@ void Raycast::castRay(olc::PixelGameEngine* pge, float rayAngle, int stripID, Pl
         // determine the height of the next adjacent tile. If there's no next tile
         // because analysis arrived at boundary of the map, set height to 0
         int nextHeight;
+        int blocktype = 0;
         if (map.isOnMapBoundary( xintercept, yintercept )) {
             nextHeight = 0;
+            
         } else {
             nextHeight = map.getFromHeightMap( nXtoCheck, nYtoCheck );
+            blocktype = map.getBlockType(nXtoCheck, nYtoCheck);
         }
 
         // just store each grid intersection point in the list - this brute force was necessary to debug the code
@@ -114,6 +110,7 @@ void Raycast::castRay(olc::PixelGameEngine* pge, float rayAngle, int stripID, Pl
         hitInfo.mapX     = nXtoCheck;
         hitInfo.mapY     = nYtoCheck;
         hitInfo.height   = nextHeight;
+        hitInfo.blocktype = blocktype;
 
        
        //hitInfo.facehit = facevalue;
@@ -196,10 +193,13 @@ void Raycast::castRay(olc::PixelGameEngine* pge, float rayAngle, int stripID, Pl
         // determine the height of the next adjacent tile. If there's no next tile
         // because analysis arrived at boundary of the map, set height to 0
         int nextHeight;
+        int blocktype = 0;
         if (map.isOnMapBoundary( xintercept, yintercept )) {
             nextHeight = 0;
+            
         } else {
             nextHeight = map.getFromHeightMap( nXtoCheck, nYtoCheck );
+            blocktype = map.getBlockType(nXtoCheck, nYtoCheck);
         }
 
         // just store each grid intersection point in the list - this brute force was necessary to debug the code
@@ -210,6 +210,7 @@ void Raycast::castRay(olc::PixelGameEngine* pge, float rayAngle, int stripID, Pl
         hitInfo.mapY     = nYtoCheck;
 
         hitInfo.height   = nextHeight;
+        hitInfo.blocktype = blocktype;
         //hitInfo.facehit = facevalue;
 
         //code for all textures related to each level of a height thats more then 1 level
