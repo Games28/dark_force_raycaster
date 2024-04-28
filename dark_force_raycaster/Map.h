@@ -26,7 +26,7 @@ public:
 
 	void renderMapGrid(olc::PixelGameEngine* PGEptr);
 
-	int getBlockType(int x, int y);
+	int getBlockType(int x, int y,int level);
 
 	int getFromHeightMap( int x, int y );
 	int getTextureMap(    int x, int y, int Height);

@@ -1,15 +1,23 @@
 #include "Wall.h"
 
+void Wall::init_trig()
+{
+	lu_cos_array = new float[360 * SIG_POW10];
+	lu_sin_array = new float[360 * SIG_POW10];
+	init_lu_cos_array();
+	init_lu_sin_array();
+}
+
 void Wall::wallTextures()
 {
     //std::string sPath = "image/";
-	sprites[0] = olc::Sprite( "sand1.png");
-	sprites[1] = olc::Sprite("stonewall.png");
-	sprites[2] = olc::Sprite("bluestone.png");
-	sprites[3] = olc::Sprite( "mossystone.png");
-	sprites[4] = olc::Sprite("Tatooinewindow3.png");
-	sprites[5] = olc::Sprite("redbrick.png");
-	sprites[6] = olc::Sprite("wood.png");
+	sprites[0] = new olc::Sprite( "sand1.png");
+	sprites[1] = new olc::Sprite("stonewall.png");
+	sprites[2] = new olc::Sprite("bluestone.png");
+	sprites[3] = new olc::Sprite( "mossystone.png");
+	sprites[4] = new olc::Sprite("Tatooinewindow3.png");
+	sprites[5] = new olc::Sprite("redbrick.png");
+	sprites[6] = new olc::Sprite("wood.png");
 
 	std::cout << "All textures loaded." << std::endl;
 }
@@ -26,6 +34,8 @@ void Wall::calculateBottomAndTop(float wallDistance, int halfheight, int wallhei
 	wallceil  = halfheight - (nsliceHeight * (1.0f - player.fPlayerH)) - (wallheight - 1) * nsliceHeight;
 	wallfloor = halfheight + (nsliceHeight *  player.fPlayerH );
 }
+
+
 
 int Wall::gettexture(int i, int j, int height)
 {
@@ -53,380 +63,258 @@ int Wall::gettexture(int i, int j, int height)
 
 void Wall::renderWallProjection(olc::PixelGameEngine* PGEptr, Player& player, Raycast& rays)
 {
-	vRenderLater.clear();
 	int halfscreenwidth = WINDOW_WIDTH / 2;
 	int halfscreenheight = WINDOW_HEIGHT * player.fPlayerH + (int)player.lookupordown;
 	float anglestep = 60 / float(WINDOW_WIDTH);
 
-	for (int x = 0; x < NUM_RAYS; x++) {     // iterate over all slices of the screen from left to right
-
-		// work out angle from player perspective belonging to this slice
-		float fViewangle = float(x - halfscreenwidth) * anglestep, fdistance;
-
-		int wallTopY, wallBottomY, nWallCeil, nWallCeil2, nWallFloor;
-		int colheight, FACE_HIT,text;
-
-		// calculated corrected distance as well as bottom and top of the wall projection - per hitpoint
-		for (int i = 0; i < (int)rays.rays[x].listinfo.size(); i++)
+	
+	for (int x = 0; x < NUM_RAYS; x++)
+	{
+		for (int i = 0; i < rays.rays[x].maplevels.size(); i++)
 		{
-			rays.rays[x].listinfo[i].distance *= cos(fViewangle * PI / 180.0f);
-			calculateBottomAndTop(rays.rays[x].listinfo[i].distance, halfscreenheight, rays.rays[x].listinfo[i].height, rays.rays[x].listinfo[i].ceil_front, rays.rays[x].listinfo[i].bottom_front, player);
-		}
+			float fViewangle = float(x - halfscreenwidth) * anglestep, fdistance;
 
-		for (int i = 0; i < (int)rays.rays[x].listinfo.size(); i++)
-		{
-			if (i == (int)rays.rays[x].listinfo.size() - 1)
-			{
-				rays.rays[x].listinfo[i].ceil_back = rays.rays[x].listinfo[i].ceil_front;
-			}
-			else
-			{
-				int nDummy;
-				calculateBottomAndTop(rays.rays[x].listinfo[i + 1].distance, halfscreenheight, rays.rays[x].listinfo[i].height, rays.rays[x].listinfo[i].ceil_back, nDummy, player);
-			}
-		}
+			int wallTopY, wallBottomY, nWallCeil, nWallCeil2, nWallFloor;
+			int colheight, text, Blocktype, MapindexX, MapindexY;
 
-		// if there's at least one hitpoint ...
-		if (rays.rays[x].listinfo.size() > 0) {
 
-			// ... set the working variables using the first hitpoint ...
-			colheight = rays.rays[x].listinfo[0].height;
-			nWallCeil = rays.rays[x].listinfo[0].ceil_front;
-			nWallCeil2 = rays.rays[x].listinfo[0].ceil_back;
-			nWallFloor = rays.rays[x].listinfo[0].bottom_front;
-			fdistance = rays.rays[x].listinfo[0].distance;
-			text = rays.rays[x].listinfo[0].texture;
-			//FACE_HIT = rays.rays[x].listinfo[0].facehit;
-			rays.Depthbuffer[x] = fdistance;
-		}
-		else {
-			// ... if there's no hitpoint, set the working variables to correspond with empty horizon displaying
-//            colheight = 0;
-			colheight = 1;
-			nWallCeil = halfscreenheight;
-			nWallCeil2 = halfscreenheight;
-			nWallFloor = halfscreenheight;
-			rays.Depthbuffer[x] = DIST_TO_PROJ_PLANE;
-		}
+			float fPlayerH = TILE_SIZE / 2.0f;
+			float fFoV = 60.0f;
+			float fAngleStep = fFoV / (float)NUM_RAYS;
+			float fViewAngle = (float)(x - (NUM_RAYS / 2)) * fAngleStep;
+			float fCurAngle = (player.rotationAngle * 180.0f / PI) + fViewAngle;
+			float fPlayerX = player.x;
+			float fPlayerY = player.y;
+			float fCosCurAngle = cos(fCurAngle * PI / 180.0f);
+			float fSinCurAngle = sin(fCurAngle * PI / 180.0f);
+			float fCosViewAngle = cos(fViewAngle * PI / 180.0f);
 
-		
-		// code to debug the result of the hit list info
-		// prints the hit list info for the slice that is denoted by nTestRay (upon releasing T)
 
-//		float fPlayerH = TILE_SIZE / 2.0f;
-		float fFoV = 60.0f;
-		float fAngleStep = fFoV / (float)NUM_RAYS;
-		float fViewAngle = (float)(x - (NUM_RAYS / 2)) * fAngleStep;
-		float fCurAngle = (player.rotationAngle * 180.0f / PI) + fViewAngle;
-		float fPlayerX = player.x;
-		float fPlayerY = player.y;
-		float fCosCurAngle = cos(fCurAngle * PI / 180.0f);
-		float fSinCurAngle = sin(fCurAngle * PI / 180.0f);
-		float fCosViewAngle = cos(fViewAngle * PI / 180.0f);
-
-#define ROOF_COLOR olc::CYAN
-
-		int hitindex = 0;
-
-		for (int y = WINDOW_HEIGHT - 1; y >= 0; y--)
-		{
-#define UNKNOWN_DRAW  0
-#define FLOOR_DRAW    1
-#define WALL_DRAW     2
-#define CEIL_DRAW     3
-#define ROOF_DRAWING  4
-
-			int drawmode = UNKNOWN_DRAW;
-			if (y >= nWallFloor)
-			{
-				drawmode = (y <= halfscreenheight) ? CEIL_DRAW : FLOOR_DRAW;
-			}
-			else if (nWallFloor > y && y > nWallCeil)
-			{
-				drawmode = WALL_DRAW;
-			}
-			else if (nWallCeil >= y && y > nWallCeil2)
-			{
-				drawmode = (colheight == 0) ? FLOOR_DRAW : ROOF_DRAWING;
-			}
-			else
-			{
-				while (drawmode == UNKNOWN_DRAW)
+			auto get_floor_sample = [=](int px, int py, int textureid)-> olc::Pixel
 				{
-					if (hitindex < (int)rays.rays[x].listinfo.size() - 1)
-					{
-						// the y coord is above the current wall and roof slide, but there are still hit points to process
-						// so there could be other walls behind current wall sticking out above it
-						hitindex += 1;
-						colheight = rays.rays[x].listinfo[hitindex].height;
-						nWallCeil = rays.rays[x].listinfo[hitindex].ceil_front;
-						nWallCeil2 = rays.rays[x].listinfo[hitindex].ceil_back;
-						nWallFloor = rays.rays[x].listinfo[hitindex].bottom_front;
-						text = rays.rays[x].listinfo[hitindex].texture;
-						
-						//FACE_HIT = FACE_HIT = rays.rays[x].listinfo[hitindex].facehit;
+					float fFloorProjDistance = (((TILE_SIZE * player.fPlayerH) / (float)(py - halfscreenheight)) * DIST_TO_PROJ_PLANE) / fCosViewAngle;
+					float fFloorProjX = fPlayerX + fFloorProjDistance * fCosCurAngle;
+					float fFloorProjY = fPlayerY + fFloorProjDistance * fSinCurAngle;
 
-						if (y >= nWallFloor)
-						{
-							drawmode = (y <= halfscreenheight) ? CEIL_DRAW : FLOOR_DRAW;
-						}
-						else if (nWallFloor > y && y > nWallCeil)
-						{
-							drawmode = WALL_DRAW;
-						}
-						else if (nWallCeil >= y && y > nWallCeil2)
-						{
-							drawmode = ROOF_DRAWING;
-						}
-					}
-					else
-					{
-						//drawmode = CEIL_DRAW;
-						drawmode = (y <= halfscreenheight) ? CEIL_DRAW : FLOOR_DRAW;
-					}
-				}
-			}
+					while (fFloorProjX < 0.0f) { fFloorProjX += floor(TILE_SIZE); }
+					while (fFloorProjY < 0.0f) { fFloorProjY += floor(TILE_SIZE); }
+					int nSampleX = (int)(fFloorProjX) % TILE_SIZE;
+					int nSampleY = (int)(fFloorProjY) % TILE_SIZE;
 
-			switch (drawmode)
-			{
-			case CEIL_DRAW:
-			{
-				if (RENDER_CEILING)
+					return sprites[textureid]->GetPixel(nSampleX, nSampleY);
+					//rays.DrawDepth(PGEptr, rays.Depthbuffer[x], x, y,p);
+					//PGEptr->Draw(px, py, p);
+
+				};
+
+			auto get_Ceiling_sample = [=](int px, int py, int textureid)-> olc::Pixel
 				{
-					float fFloorProjDistance = (((TILE_SIZE * player.fPlayerH) / (float)(halfscreenheight - y)) * DIST_TO_PROJ_PLANE) / fCosViewAngle;
+					float fFloorProjDistance = (((TILE_SIZE * player.fPlayerH) / (float)(halfscreenheight - py)) * DIST_TO_PROJ_PLANE) / fCosViewAngle;
 					float fFloorProjX = fPlayerX + fFloorProjDistance * fCosCurAngle;
 					float fFloorProjY = fPlayerY + fFloorProjDistance * fSinCurAngle;
 					int nSampleX = (int)(fFloorProjX) % TILE_SIZE;
 					int nSampleY = (int)(fFloorProjY) % TILE_SIZE;
 
-					olc::Pixel p = sprites[0].GetPixel(nSampleX, nSampleY);
+					return sprites[textureid]->GetPixel(nSampleX, nSampleY);
 					//rays.DrawDepth(PGEptr, rays.Depthbuffer[x], x, y, p);
-					PGEptr->Draw(x, y, p);
-				}
-				break;
-			}
-			case FLOOR_DRAW:
+					//PGEptr->Draw(px, py, p);
+				};
+
+
+			//auto block_side_hit = [=](int rayid, int hitindex,int &textureid)
+			//	{
+			//		float fSampleX;
+			//		if (rays.rays[x].listinfo[hitindex].wasHitVertical) {
+			//			fSampleX = (int)rays.rays[x].listinfo[hitindex].wallHitY % TILE_SIZE;
+			//			    if (rays.rays[x].listinfo[hitindex].rayRt)
+			//				{
+			//					textureid = 4;
+			//				}
+			//				
+			//				if (rays.rays[x].listinfo[hitindex].rayLt)
+			//				{
+			//					textureid = 2;
+			//				}
+			//
+			//
+			//
+			//		}
+			//		else
+			//		{
+			//			fSampleX = (int)rays.rays[x].listinfo[hitindex].wallHitX % TILE_SIZE;
+			//
+			//			    if (rays.rays[x].listinfo[hitindex].rayRt)
+			//				{
+			//					textureid = 4;
+			//				}
+			//				
+			//				if (rays.rays[x].listinfo[hitindex].rayLt)
+			//				{
+			//					textureid = 2;
+			//				}
+			//
+			//		}
+			//
+			//		return fSampleX;
+			//	};
+			//
+			//auto block_hit = [=](int rayid, int hitindex)
+			//	{
+			//		float fSampleX;
+			//		if (rays.rays[x].listinfo[hitindex].wasHitVertical) {
+			//			fSampleX = (int)rays.rays[x].listinfo[hitindex].wallHitY % TILE_SIZE;
+			//			
+			//
+			//		}
+			//		else
+			//		{
+			//			fSampleX = (int)rays.rays[x].listinfo[hitindex].wallHitX % TILE_SIZE;
+			//
+			//			
+			//		}
+			//
+			//		return fSampleX;
+			//	};
+			//
+			////rendering floor and ceiling/sky first
+			for (int y = WINDOW_HEIGHT - 1; y >= 0; y--)
 			{
-				float fFloorProjDistance = (((TILE_SIZE * player.fPlayerH) / (float)(y - halfscreenheight)) * DIST_TO_PROJ_PLANE) / fCosViewAngle;
-				float fFloorProjX = fPlayerX + fFloorProjDistance * fCosCurAngle;
-				float fFloorProjY = fPlayerY + fFloorProjDistance * fSinCurAngle;
-
-				while (fFloorProjX < 0.0f) { fFloorProjX += floor(TILE_SIZE); }
-				while (fFloorProjY < 0.0f) { fFloorProjY += floor(TILE_SIZE); }
-				int nSampleX = (int)(fFloorProjX) % TILE_SIZE;
-				int nSampleY = (int)(fFloorProjY) % TILE_SIZE;
-
-				olc::Pixel p = sprites[0].GetPixel(nSampleX, nSampleY);
-				//rays.DrawDepth(PGEptr, rays.Depthbuffer[x], x, y,p);
-				PGEptr->Draw(x, y, p);
-				break;
-			}
-			case ROOF_DRAWING:
-			{
-				//olc::Pixel p = ROOF_COLOR;
-
-				float fRoofProjDistance = (((player.fPlayerH - float(colheight)) * TILE_SIZE / float(y - halfscreenheight)) * DIST_TO_PROJ_PLANE) / fCosViewAngle;
-				float fRoofProjX = player.x + fRoofProjDistance * fCosCurAngle;
-				float fRoofProjY = player.y + fRoofProjDistance * fSinCurAngle;
-
-				int nSampleX = (int)(fRoofProjX) % TILE_SIZE;
-				int nSampleY = (int)(fRoofProjY) % TILE_SIZE;
-				olc::Pixel p = sprites[3].GetPixel(nSampleX, nSampleY);
-				//rays.DrawDepth(PGEptr, rays.Depthbuffer[x], x, y, p);
-				PGEptr->Draw(x, y, p);
-				break;
-			}
-			case WALL_DRAW:
-			{
-				float fSampleY = 0;
-				int nDisplayBlockHeight = 0;
-
-				if (STRETCHED_TEXTURING)
+				if (y < halfscreenheight)
 				{
-					fSampleY = float(y - wallTopY) / float(wallBottomY - wallTopY);
+					olc::Pixel skysample = olc::CYAN;
+					PGEptr->Draw(x, y, skysample);
 				}
-				else {
-					float blocksize = float(nWallFloor - nWallCeil) / colheight;
-
-					float relative = float(y - nWallCeil);
-					nDisplayBlockHeight = colheight;
-					while (relative > blocksize)
-					{
-						relative -= blocksize;
-						nDisplayBlockHeight -= 1;
-					}
-
-					fSampleY = relative / blocksize;
-				}
-
-
-
-				float fSampleX;
-				olc::Pixel auxSample;
-				int tid = 0;
-				int tid2 = 0;
-				fSampleY = fSampleY * TILE_SIZE;
-				//working
-				int newid = 0;
-				int blocktype = 0;
-				int index2;
-				tid = gettexture(rays.rays[x].listinfo[hitindex].mapY, rays.rays[x].listinfo[hitindex].mapX, nDisplayBlockHeight);
-				if (tid == 4)
+				if (y > halfscreenheight)
 				{
-					index2 = gettexture(rays.rays[x].listinfo[2].mapY, rays.rays[x].listinfo[2].mapX, nDisplayBlockHeight);
+					olc::Pixel floorsample = get_floor_sample(x, y, 0);
+					PGEptr->Draw(x, y, floorsample);
 				}
-				
-
-				//if (tid == 4)
-				//{
-				//	tid2 = gettexture(rays.rays[x].listinfo[hitindex + 1].mapY, rays.rays[x].listinfo[hitindex].mapX, nDisplayBlockHeight);
-				//}
-
-				
-
-
-				//fSampleX = int(fSampleX) % TILE_SIZE;
-				
-
-				// having both sample coordinates, get the sample and draw the pixel
-				if (tid == 4)
-				{
-					//delayed texture info
-					if (rays.rays[x].listinfo[hitindex].wasHitVertical) {
-						fSampleX = (int)rays.rays[x].listinfo[hitindex].wallHitY % TILE_SIZE;
-
-						if (tid == 4 && rays.rays[x].listinfo[hitindex].rayRt)
-						{
-							newid = 4;
-						}
-
-						if (tid == 4 && rays.rays[x].listinfo[hitindex].rayLt)
-						{
-							newid = 2;
-						}
-
-
-					}
-					else
-					{
-						fSampleX = (int)rays.rays[x].listinfo[hitindex].wallHitX % TILE_SIZE;
-
-						if (tid == 4 && rays.rays[x].listinfo[hitindex].rayUp)
-						{
-							newid = 3;
-						}
-
-						if (tid == 4 && rays.rays[x].listinfo[hitindex].rayDn)
-						{
-							newid = 1;
-						}
-
-					}
-
-
-					auxSample = sprites[newid].GetPixel(fSampleX, fSampleY);
-
-
-					DelayedPixel aux = { x,y,rays.Depthbuffer[x],auxSample };
-					vRenderLater.push_back(aux);
-
-					//next texture to display
-					if (rays.rays[x].listinfo[index2].wasHitVertical) {
-						fSampleX = (int)rays.rays[x].listinfo[index2].wallHitY % TILE_SIZE;
-
-						if (rays.rays[x].listinfo[hitindex + 1].rayRt)
-						{
-							newid = 2;
-						}
-						
-						if (rays.rays[x].listinfo[hitindex + 1].rayLt) 
-						{
-							newid = 5;
-						}
-
-
-					}
-					else
-					{
-						fSampleX = (int)rays.rays[x].listinfo[index2].wallHitX % TILE_SIZE;
-
-					if (rays.rays[x].listinfo[hitindex + 1].rayUp)
-					{
-						newid = 3;
-					}
-					
-					if (rays.rays[x].listinfo[hitindex + 1].rayDn)
-					{
-						newid = 1;
-					}
-					
-					}
-
-					auxSample = sprites[newid].GetPixel(fSampleX, fSampleY);
-					PGEptr->Draw(x, y, auxSample);
-					
-				}
-				else
-				{
-					if (rays.rays[x].listinfo[hitindex].wasHitVertical) {
-						fSampleX = (int)rays.rays[x].listinfo[hitindex].wallHitY % TILE_SIZE;
-
-						//if (tid == 4 && rays.rays[x].listinfo[hitindex].rayRt)
-						//{
-						//	newid = 4;
-						//}
-						//
-						//if (tid == 4 && rays.rays[x].listinfo[hitindex].rayLt)
-						//{
-						//	newid = 2;
-						//}
-
-
-					}
-					else
-					{
-						fSampleX = (int)rays.rays[x].listinfo[hitindex].wallHitX % TILE_SIZE;
-
-						//if (tid == 4 && rays.rays[x].listinfo[hitindex].rayUp)
-						//{
-						//	tid = 3;
-						//}
-						//
-						//if (tid == 4 && rays.rays[x].listinfo[hitindex].rayDn)
-						//{
-						//	tid = 1;
-						//}
-
-					}
-
-					auxSample = sprites[tid].GetPixel(fSampleX, fSampleY);
-					PGEptr->Draw(x, y, auxSample);
-				}
-				
-				
-				
-				
-			     
-
-				
-				//rays.DrawDepth(PGEptr,rays.Depthbuffer[x], x, y, auxSample);
-				
-				break;
 			}
-			}
+
+			//// calculated corrected distance as well as bottom and top of the wall projection - per hitpoint
+			//for (int i = 0; i < (int)rays.rays[x].listinfo.size(); i++)
+			//{
+			//	rays.rays[x].listinfo[i].distance *= cos(fViewangle * PI / 180.0f);
+			//	calculateBottomAndTop(rays.rays[x].listinfo[i].distance, halfscreenheight, rays.rays[x].listinfo[i].height, rays.rays[x].listinfo[i].ceil_front, rays.rays[x].listinfo[i].bottom_front, player);
+			//}
+			//
+			//for (int i = 0; i < (int)rays.rays[x].listinfo.size(); i++)
+			//{
+			//	if (i == (int)rays.rays[x].listinfo.size() - 1)
+			//	{
+			//		rays.rays[x].listinfo[i].distanceback = rays.rays[x].listinfo[i].distance;
+			//		rays.rays[x].listinfo[i].ceil_back = rays.rays[x].listinfo[i].ceil_front;
+			//		rays.rays[x].listinfo[i].bottom_back = rays.rays[x].listinfo[i].bottom_front;
+			//	}
+			//	else
+			//	{
+			//		rays.rays[x].listinfo[i].distanceback = rays.rays[x].listinfo[i + 1].distance;
+			//		calculateBottomAndTop(
+			//			rays.rays[x].listinfo[i].distanceback,
+			//			halfscreenheight,
+			//			rays.rays[x].listinfo[i].height,
+			//			rays.rays[x].listinfo[i].ceil_back,
+			//			rays.rays[x].listinfo[i].bottom_back,
+			//			player);
+			//	}
+			//}
+			//
+			//for (auto& hitRec : rays.rays[x].listinfo)
+			//{
+			//	float fSampleY = 0;
+			//	int nDisplayBlockHeight = 0;
+			//
+			//	if (hitRec.height > 0.0f)
+			//	{
+			//		colheight = hitRec.height;
+			//		nWallCeil = hitRec.ceil_front;
+			//		nWallCeil2 = hitRec.ceil_back;
+			//
+			//	}
+			//	colheight = rays.rays[x].listinfo[0].height;
+			//	nWallCeil = rays.rays[x].listinfo[0].ceil_front;
+			//	nWallCeil2 = rays.rays[x].listinfo[0].ceil_back;
+			//	nWallFloor = rays.rays[x].listinfo[0].bottom_front;
+			//	fdistance = rays.rays[x].listinfo[0].distance;
+			//	text = rays.rays[x].listinfo[0].texture;
+			//	Blocktype = rays.rays[x].listinfo[0].blocktype;
+			//
+			//
+			//}
 
 		}
-		for (auto& elt : vRenderLater)
-		{
-			if (elt.p != olc::BLANK)
-			{
-				//rays.DrawDepth(PGEptr, elt.depth, elt.x, elt.y, elt.p);
-				PGEptr->Draw(elt.x, elt.y, elt.p);
-			}
-		}
-
 	}
 
 	
 }
+
+float Wall::deg2rad(float fAngleDeg)
+{
+	return fAngleDeg * (PI / 180.0f);
+}
+
+float Wall::rad2deg(float fAngleRad)
+{
+	return fAngleRad / (PI * 180.0f);
+}
+
+float Wall::deg_mod2pi(float fAngleDeg)
+{
+	while (fAngleDeg < 0.0f) fAngleDeg += 360.0f;
+	while (fAngleDeg >= 360.0f) fAngleDeg -= 360.0f;
+	return fAngleDeg;
+}
+
+float Wall::rad_mod2pi(float fAngleRad)
+{
+	while (fAngleRad < 0.0f) { fAngleRad += (2.0f * PI); }
+	while (fAngleRad >= 2.0f * PI) { fAngleRad -= (2.0f * PI); }
+
+	return fAngleRad;
+}
+
+void Wall::init_lu_sin_array()
+{
+	for (int i = 0; i < 360; i++)
+	{
+		for (int j = 0; j < SIG_POW10; j++)
+		{
+			int nIndex = i * SIG_POW10 + j;
+			float fArg_deg = float(nIndex) / float(SIG_POW10);
+			lu_sin_array[nIndex] = sinf(deg2rad(fArg_deg));
+		}
+	}
+}
+
+void Wall::init_lu_cos_array()
+{
+	for (int i = 0; i < 360; i++)
+	{
+		for (int j = 0; j < SIG_POW10; j++)
+		{
+			int nIndex = i * SIG_POW10 + j;
+			float fArg_deg = float(nIndex) / float(SIG_POW10);
+			lu_sin_array[nIndex] = cosf(deg2rad(fArg_deg));
+		}
+	}
+}
+
+float Wall::lu_sin(float fDegreeAngle)
+{
+	fDegreeAngle = deg_mod2pi(fDegreeAngle);
+	int nWholeNr = int(fDegreeAngle);
+	int nRemainder = int((fDegreeAngle - nWholeNr) * float(SIG_POW10));
+	int nIndex = nWholeNr * SIG_POW10 + nRemainder;
+	return lu_sin_array[nIndex];
+}
+
+float Wall::lu_cos(float fDegreeAngle)
+{
+	fDegreeAngle = deg_mod2pi(fDegreeAngle);
+	int nWholeNr = int(fDegreeAngle);
+	int nRemainder = int((fDegreeAngle - nWholeNr) * float(SIG_POW10));
+	int nIndex = nWholeNr * SIG_POW10 + nRemainder;
+	return lu_cos_array[nIndex];
+}
+
 

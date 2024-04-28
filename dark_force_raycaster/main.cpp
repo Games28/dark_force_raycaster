@@ -35,7 +35,7 @@ public:
 		wall.wallTextures();
 		sprite.initSpriteinfo();
 		sprite.initsprites();
-		
+		wall.init_trig();
 
 		return true;
 	}
@@ -55,7 +55,7 @@ public:
 		
 
 
-			DrawString(200, 10, "texture " + std::to_string(ray.rays[NUM_RAYS / 2].listinfo[0].texture));
+			
 		
 		
 		DrawLine(WINDOW_WIDTH / 2, 0, WINDOW_WIDTH / 2, WINDOW_HEIGHT, olc::CYAN);
