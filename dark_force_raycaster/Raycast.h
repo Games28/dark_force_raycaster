@@ -17,11 +17,11 @@ struct intersectInfo
 	int mapY;
 	float distance;
 	float distanceback;
-	int height;
+	float height;
 	bool wasHitVertical;
 	float rayAngle;
 	int texture;
-	
+	int maplevel;
  	//multilevel flying and crouching
 	int bottom_front;
 	int bottom_back;
@@ -37,12 +37,9 @@ struct intersectInfo
 	
 };
 
-struct MapLevel
-{
-	std::vector<intersectInfo> listinfo;
-};
+
 struct Ray {
-	std::vector<MapLevel> maplevels;
+	std::vector<intersectInfo> listinfo;
 
 };
 

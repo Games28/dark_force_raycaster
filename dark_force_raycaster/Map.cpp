@@ -2,22 +2,22 @@
 
 void Map::initMap()
 {
-	for (int i = 0; i < MAP_NUM_ROWS; i++) {
 
-		for (int j = 0; j < MAP_NUM_COLS; j++) {
-			Block b;
-			b.Height = heightmap[i][j];
-			int t0 = texturemapOne[i][j];
-			b.textureid.push_back(t0);
-			int t1 = texturemapTwo[i][j];
-			b.textureid.push_back(t1);
-			int t2 = texturemapThree[i][j];
-			b.textureid.push_back(t2);
-			int t3 = texturemapFour[i][j];
-			b.textureid.push_back(t3);
-			blocks.push_back(b);
-		}
-	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
 
 bool Map::mapHasWallAt(float x, float y)
@@ -65,30 +65,30 @@ void Map::renderMapGrid(olc::PixelGameEngine* PGEptr)
     PGEptr->FillRect( 0, 0, MAP_NUM_COLS * TILE_SIZE * MINIMAP_SCALE_FACTOR, MAP_NUM_ROWS * TILE_SIZE * MINIMAP_SCALE_FACTOR, olc::DARK_YELLOW );
 
     // draw each tile
-	for (int i = 0; i < MAP_NUM_ROWS; i++) {
-		for (int j = 0; j < MAP_NUM_COLS; j++) {
-			int tileX = j * TILE_SIZE;
-			int tileY = i * TILE_SIZE;
-            // colour different for different heights
-			olc::Pixel p;
-			switch (heightmap[i][j]) {
-			    case 0:  p = olc::VERY_DARK_GREEN; break;
-			    case 1:  p = olc::WHITE;           break;
-			    case 2:  p = olc::GREY;            break;
-			    case 3:  p = olc::DARK_GREY;       break;
-			    case 4:  p = olc::VERY_DARK_GREY;  break;
-			    default: p = olc::BLUE;  break;
-			}
-            // render this thile
-			PGEptr->FillRect(
-				tileX * MINIMAP_SCALE_FACTOR     + 1,
-				tileY * MINIMAP_SCALE_FACTOR     + 1,
-				TILE_SIZE * MINIMAP_SCALE_FACTOR - 1,
-				TILE_SIZE * MINIMAP_SCALE_FACTOR - 1,
-				p
-			);
-		}
-	}
+	//for (int i = 0; i < MAP_NUM_ROWS; i++) {
+	//	for (int j = 0; j < MAP_NUM_COLS; j++) {
+	//		int tileX = j * TILE_SIZE;
+	//		int tileY = i * TILE_SIZE;
+    //        // colour different for different heights
+	//		olc::Pixel p;
+	//		switch (heightmap[i][j]) {
+	//		    case 0:  p = olc::VERY_DARK_GREEN; break;
+	//		    case 1:  p = olc::WHITE;           break;
+	//		    case 2:  p = olc::GREY;            break;
+	//		    case 3:  p = olc::DARK_GREY;       break;
+	//		    case 4:  p = olc::VERY_DARK_GREY;  break;
+	//		    default: p = olc::BLUE;  break;
+	//		}
+    //        // render this thile
+	//		PGEptr->FillRect(
+	//			tileX * MINIMAP_SCALE_FACTOR     + 1,
+	//			tileY * MINIMAP_SCALE_FACTOR     + 1,
+	//			TILE_SIZE * MINIMAP_SCALE_FACTOR - 1,
+	//			TILE_SIZE * MINIMAP_SCALE_FACTOR - 1,
+	//			p
+	//		);
+	//	}
+	//}
 }
 
 int Map::getBlockType(int x, int y,int level)
@@ -128,19 +128,46 @@ int Map::getBlockType(int x, int y,int level)
 	return levelid;
 }
 
-int Map::getFromHeightMap( int x, int y )
+float Map::getFromHeightMap( int x, int y, int height )
 {
+	float heightid = 0;
     // Joseph21 - if coordinate is out of bounds, return 0, else return value of height map
     if (x < 0 || x >= MAP_NUM_COLS || y < 0 || y >= MAP_NUM_ROWS)
         return 0;
-    else
-        return heightmap[y][x];
+	else
+	{
+		switch (height)
+		{
+		case 1:
+		{
+			heightid = heightmapOne[y][x];
+		}break;
+
+		case 2:
+		{
+			heightid = heightmapTwo[y][x];
+		}break;
+
+		case 3:
+		{
+			heightid = heightmapThree[y][x];
+		}break;
+
+		case 4:
+		{
+			heightid = heightmapFour[y][x];
+		}break;
+		}
+	}
+
+	return heightid;
 }
 
 int Map::getTextureMap(int i, int j, int Height)
 {
 	int textureid = 0;
 
+	
 	switch (Height)
 	{
 	case 1:

@@ -28,11 +28,11 @@ void Raycast::castRay(olc::PixelGameEngine* pge, float rayAngle, int stripID, Pl
 	};
 
 	// preparation for the DDA algo: clear the hit list for this ray, normalize the angle and set the ray direction booleans
-	rays[stripID].maplevels.clear();
+	rays[stripID].listinfo.clear();
 
     for (int i = 0; i < 4; i++)
     {
-        MapLevel LEVEL;
+        
 
         normalizeAngle(&rayAngle);
         float fRayAngleTan = tan(rayAngle);
@@ -97,16 +97,16 @@ void Raycast::castRay(olc::PixelGameEngine* pge, float rayAngle, int stripID, Pl
 
             // determine the height of the next adjacent tile. If there's no next tile
             // because analysis arrived at boundary of the map, set height to 0
-           // int nextHeight;
+           float nextHeight;
             int blocktype = 0;
             if (map.isOnMapBoundary(xintercept, yintercept)) {
-                // nextHeight = 0;
+                nextHeight = 0;
 
             }
             else {
-                // nextHeight = map.getFromHeightMap(nXtoCheck, nYtoCheck);
+                 nextHeight = map.getFromHeightMap(nXtoCheck, nYtoCheck, i + 1);
                 blocktype = map.getBlockType(nXtoCheck, nYtoCheck, i + 1);
-               
+                
             }
 
 
@@ -117,21 +117,24 @@ void Raycast::castRay(olc::PixelGameEngine* pge, float rayAngle, int stripID, Pl
             hitInfo.mapX = nXtoCheck;
             hitInfo.mapY = nYtoCheck;
            
-           
+            if (blocktype == 0)
+            {
+                int u = 0;
+            }
             hitInfo.blocktype = blocktype;
-
+            hitInfo.height = nextHeight;
 
 
             hitInfo.wasHitVertical = false;
             hitInfo.distance = distanceBetweenPoints(player.x, player.y, xintercept, yintercept);
-
+            hitInfo.maplevel = i + 1;
             // only needed for debugging
             hitInfo.rayUp = isRayFacingUp;
             hitInfo.rayDn = isRayFacingDn;
             hitInfo.rayLt = isRayFacingLt;
             hitInfo.rayRt = isRayFacingRt;
 
-            LEVEL.listinfo.push_back(hitInfo);
+            rays[stripID].listinfo.push_back(hitInfo);
 
             // advance to next horizontal grid line
             xintercept += xstep;
@@ -184,14 +187,14 @@ void Raycast::castRay(olc::PixelGameEngine* pge, float rayAngle, int stripID, Pl
 
             // determine the height of the next adjacent tile. If there's no next tile
             // because analysis arrived at boundary of the map, set height to 0
-            //int nextHeight;
+            float nextHeight;
             int blocktype = 0;
             if (map.isOnMapBoundary(xintercept, yintercept)) {
-                // nextHeight = 0;
+                nextHeight = 0;
 
             }
             else {
-                //nextHeight = map.getFromHeightMap(nXtoCheck, nYtoCheck);
+                nextHeight = map.getFromHeightMap(nXtoCheck, nYtoCheck, i+ 1);
                 blocktype = map.getBlockType(nXtoCheck, nYtoCheck, i + 1);
               
                
@@ -206,12 +209,15 @@ void Raycast::castRay(olc::PixelGameEngine* pge, float rayAngle, int stripID, Pl
             hitInfo.mapX = nXtoCheck;
             hitInfo.mapY = nYtoCheck;
 
-           
+            if (blocktype == 0)
+            {
+                int u = 0;
+           }
             hitInfo.blocktype = blocktype;
-
+            hitInfo.height = nextHeight;
             hitInfo.wasHitVertical = true;
             hitInfo.distance = distanceBetweenPoints(player.x, player.y, xintercept, yintercept);
-
+            hitInfo.maplevel = i + 1;
 
 
             // only needed for debugging
@@ -221,33 +227,25 @@ void Raycast::castRay(olc::PixelGameEngine* pge, float rayAngle, int stripID, Pl
             hitInfo.rayLt = isRayFacingLt;
             hitInfo.rayRt = isRayFacingRt;
 
-            LEVEL.listinfo.push_back(hitInfo);
+            rays[stripID].listinfo.push_back(hitInfo);
 
             // advance to next vertical grid line
             xintercept += xstep;
             yintercept += ystep;
         }
 
-        rays[stripID].maplevels.push_back(LEVEL);
+       
     }
         // sort the hist list in order of increasing distance
 
-    for (int i = 0; i < 4; i++)
-    {
-        std::sort(
-            rays[stripID].maplevels[i].listinfo.begin(),
-            rays[stripID].maplevels[i].listinfo.end(),
-            [](intersectInfo& a, intersectInfo& b) {
-                return a.distance < b.distance;
-            }
-        );
-
+    
+   
 
 
         bool bRunUp = true;
         int nHeightTracker = 0;
-        std::vector<intersectInfo> tempList(rays[stripID].maplevels[i].listinfo);   // copy hit list to a temporary list
-        rays[stripID].maplevels[i].listinfo.clear();                                         // clear hit list
+        std::vector<intersectInfo> tempList(rays[stripID].listinfo);   // copy hit list to a temporary list
+        rays[stripID].listinfo.clear();                                         // clear hit list
 
         for (int i = 0; i < (int)tempList.size(); i++) {
             // this is to remove all unnecessary "hit" points with height 0 at the start of the list
@@ -261,12 +259,20 @@ void Raycast::castRay(olc::PixelGameEngine* pge, float rayAngle, int stripID, Pl
                 if (tempList[i - 1].height != nHeightTracker) {
                     nHeightTracker = tempList[i].height;
                     // keep only hit points where the height differs from what it was before
-                    rays[stripID].maplevels[i].listinfo.push_back(tempList[i]);
+                    rays[stripID].listinfo.push_back(tempList[i]);
                 }
             }
         }
         
-    }
+
+        std::sort(
+            rays[stripID].listinfo.begin(),
+            rays[stripID].listinfo.end(),
+            [](intersectInfo& a, intersectInfo& b) {
+                return (a.distance > b.distance) || (a.distance == b.distance && a.maplevel < b.maplevel);
+            }
+        );
+        int u = 0;
 }
 
 void Raycast::renderMapRays(olc::PixelGameEngine* PGEptr, Player& player, int testRay)

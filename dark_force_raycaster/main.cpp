@@ -55,10 +55,6 @@ public:
 		
 
 
-			
-		
-		
-		DrawLine(WINDOW_WIDTH / 2, 0, WINDOW_WIDTH / 2, WINDOW_HEIGHT, olc::CYAN);
 		
 		return true;
 	}

@@ -70,8 +70,7 @@ void Wall::renderWallProjection(olc::PixelGameEngine* PGEptr, Player& player, Ra
 	
 	for (int x = 0; x < NUM_RAYS; x++)
 	{
-		for (int i = 0; i < rays.rays[x].maplevels.size(); i++)
-		{
+	
 			float fViewangle = float(x - halfscreenwidth) * anglestep, fdistance;
 
 			int wallTopY, wallBottomY, nWallCeil, nWallCeil2, nWallFloor;
@@ -243,7 +242,7 @@ void Wall::renderWallProjection(olc::PixelGameEngine* PGEptr, Player& player, Ra
 			//}
 
 		}
-	}
+	
 
 	
 }

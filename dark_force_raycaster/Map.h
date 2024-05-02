@@ -28,7 +28,7 @@ public:
 
 	int getBlockType(int x, int y,int level);
 
-	int getFromHeightMap( int x, int y );
+	float getFromHeightMap( int x, int y, int height);
 	int getTextureMap(    int x, int y, int Height);
 	std::vector<Block> blocks;
 	
