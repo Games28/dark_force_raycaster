@@ -1,39 +1,24 @@
 #ifndef MAP_H
 #define MAP_H
-
-#include "defs.h"
-#include "MapEditor.h"
 #include "olcPixelGameEngine.h"
-
- struct Block
-{
-	 int Height;
-	 //std::vector<float> Heightmaps;
-	// std::vector<int*> texturemaps;
-	 std::vector<int> textureid;
-	 void getTextureid(int id);
-};
+#include "defs.h"
 
 class Map
 {
 public:
 	Map() = default;
 	void initMap();
-	bool mapHasWallAt(    float x, float y );
-	bool isInsideMap(     float x, float y );
-	bool isOutSideMap(    float x, float y );
-    bool isOnMapBoundary( float x, float y );   // Added Joseph21
 
-	void renderMapGrid(olc::PixelGameEngine* PGEptr);
-
-	int getBlockType(int x, int y,int level);
-
-	float getFromHeightMap( int x, int y, int height);
-	int getTextureMap(    int x, int y, int Height);
-	std::vector<Block> blocks;
+public:
+	std::string sMap;
+	float *fMap;
 	
+	int nMapX = 32;
+	int nMapY = 32;
+	float fMaxDistance;
+	float fDistToProjPlane;
+	float* fDepthBuffer = nullptr;
 };
-
 #endif // !MAP_H
 
 

@@ -1,45 +1,27 @@
 #ifndef PLAYER_H
 #define PLAYER_H
-#include "Map.h"
 #include "olcPixelGameEngine.h"
+#include "Map.h"
 #include "defs.h"
-#include "MapEditor.h"
 
 class Player
 {
 public:
 	Player();
 	~Player();
-	void processInput(olc::PixelGameEngine* PGEptr,float deltatime, Map& map);
-	void movePlayer(float deltatime, Map& map);
-	void renderMapPlayer(olc::PixelGameEngine* PGEptr);
+	void processinput(olc::PixelGameEngine* pge, Map& map, float deltatime);
+
+
 
 public:
-	float x;
-	float y;
-	float width;
-	float height;
-	int turnDirection; // -1 for left, +1 for right
-	int walkDirection; // -1 for back, +1 for front
+	float fPlayerX;
+	float fPlayerY;
 	float rotationAngle;
-	float walkSpeed;
-	float turnSpeed;
-	int islookingupdown;
-	float lookUpDown;
-	float playerLookAngle;
-	bool strafeLeft;
-	bool strafeRight;
-	int strafedirection;
-	int run;
-	int lookupordown;
-	float lookspeed;
-	float vertlook;
-	float strafeupspeed;
 	float fPlayerH;
-	bool movevert;
-	bool lookvert;
+	float fPlayer_fov;
+	float fLookUp = 0.0f;
+	float fSpeedUp;
+
 };
-
 #endif // !PLAYER_H
-
 

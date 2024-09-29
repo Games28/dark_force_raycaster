@@ -2,253 +2,109 @@
 
 Player::Player()
 {
-	x = WINDOW_WIDTH / 2;
-	y = WINDOW_HEIGHT / 2;
-	width = 5;
-	height = 5;
-	turnDirection = 0;
-	walkDirection = 0;
-	rotationAngle = 0;
-	walkSpeed = 100;
-	turnSpeed = 45 * (PI/ 180.0f);
-	islookingupdown = 0;
-	lookUpDown = 45 * (PI / 180.0f);
-	playerLookAngle = 0;
-	strafeLeft = false;
-	strafeRight = false;
-	strafedirection = 0;
-	run = 1;
-	lookspeed = 200.0f;
-	lookupordown = 0;
-	vertlook = 0;
-	strafeupspeed = 1.0f;
+	fPlayerX = 3.0f;
+	fPlayerY = 3.0f;
 	fPlayerH = 0.5f;
-	lookvert = false;
-	movevert = false;
+	fPlayer_fov = 60.0f;
+	rotationAngle = 0.0f;
+
 }
 
 Player::~Player()
 {
 }
 
-void Player::processInput(olc::PixelGameEngine* PGEptr, float deltatime, Map& map)
+void Player::processinput(olc::PixelGameEngine* pge,Map& map, float deltatime)
 {
-
-	if (PGEptr->GetKey(olc::W).bHeld)
+	if (pge->GetKey(olc::D).bHeld)
 	{
-		walkDirection = +1;
+		rotationAngle += SPEED_ROTATE * deltatime;
+		if (rotationAngle >= 360.0f) { rotationAngle -= 360.0f; }
+	}
+	if (pge->GetKey(olc::A).bHeld)
+	{
+		rotationAngle -= SPEED_ROTATE * deltatime;
+		if (rotationAngle < 0.0f) { rotationAngle += 360.0f; }
 	}
 
-	if (PGEptr->GetKey(olc::S).bHeld)
+	float fnewX = fPlayerX;
+	float fnewY = fPlayerY;
+
+	if (pge->GetKey(olc::W).bHeld)
 	{
-		walkDirection = -1;
+		fnewX += cos(rotationAngle * PI / 180.0f) * SPEED_MOVE * deltatime;
+		fnewY += sin(rotationAngle * PI / 180.0f) * SPEED_MOVE * deltatime;
 	}
 
-	if (PGEptr->GetKey(olc::Q).bHeld)
+	if (pge->GetKey(olc::S).bHeld)
 	{
-		strafeLeft = true;
-		strafedirection = +1;
+		fnewX -= cos(rotationAngle * PI / 180.0f) * SPEED_MOVE * deltatime;
+		fnewY -= sin(rotationAngle * PI / 180.0f) * SPEED_MOVE * deltatime;
+	}
+	if (pge->GetKey(olc::Q).bHeld)
+	{
+		fnewX += sin(rotationAngle * PI / 180.0f) * SPEED_STRAFE * deltatime;
+		fnewY -= cos(rotationAngle * PI / 180.0f) * SPEED_STRAFE * deltatime;
 	}
 
-	if (PGEptr->GetKey(olc::E).bHeld)
+	if (pge->GetKey(olc::E).bHeld)
 	{
-		strafeRight = true;
-		strafedirection = -1;
+		fnewX -= sin(rotationAngle * PI / 180.0f) * SPEED_STRAFE * deltatime;
+		fnewY += cos(rotationAngle * PI / 180.0f) * SPEED_STRAFE * deltatime;
 	}
 
-	if (PGEptr->GetKey(olc::D).bHeld)
-	{
-		turnDirection = +1;
-	}
-
-	if (PGEptr->GetKey(olc::A).bHeld)
-	{
-		turnDirection = -1;
-	}
-
-	if (PGEptr->GetKey(olc::SHIFT).bHeld)
-	{
-		run = 3;
-	}
-
-	if (PGEptr->GetKey(olc::UP).bHeld)
-	{
-		lookvert = true;
-		lookupordown += lookspeed * deltatime;
-	}
-	if (PGEptr->GetKey(olc::DOWN).bHeld)
-	{
-		lookvert = true;
-		lookupordown  -= lookspeed * deltatime;
-	}
-
-	if (PGEptr->GetKey(olc::W).bReleased)
-	{
-		walkDirection = 0;
-	}
-
-	if (PGEptr->GetKey(olc::S).bReleased)
-	{
-		walkDirection = 0;
-	}
-
-	if (PGEptr->GetKey(olc::Q).bReleased)
-	{
-		strafedirection = 0;
-	}
-
-	if (PGEptr->GetKey(olc::E).bReleased)
-	{
-		strafedirection = 0;
-	}
-
-	if (PGEptr->GetKey(olc::D).bReleased)
-	{
-		turnDirection = 0;
-	}
-
-	if (PGEptr->GetKey(olc::A).bReleased)
-	{
-		turnDirection = 0;
-	}
-	if (PGEptr->GetKey(olc::SHIFT).bReleased)
-	{
-		run = 1;
-	}
-	if (PGEptr->GetKey(olc::UP).bReleased)
-	{
-		lookvert = false;
-		
-	}
-	if (PGEptr->GetKey(olc::DOWN).bReleased)
-	{
-		lookvert = false;
-		
-	}
-
-	//NOTE - for multi level rendering there's only clamping to keep fPlayerH > 0.0f, there's no upper limit.
-
-		// cache current height of horizon, so that you can compensate for changes in it via the look up value
-	float fCachHorHeight = float(WINDOW_HEIGHT) * fPlayerH + lookupordown;
-
-	//if (MULTIPLE_LEVELS)
-	//{
-	//	// if the player height is adapted, keep horizon height stable by compensating with look up value
-	//	if (PGEptr->GetKey(olc::PGUP).bHeld)
-	//	{
-	//		movevert = true;
-	//		fPlayerH += strafeupspeed * run * deltatime;
-	//		lookupordown = fCachHorHeight - float(WINDOW_HEIGHT * fPlayerH);
-	//	}
-	//	if (PGEptr->GetKey(olc::PGDN).bHeld)
-	//	{
-	//		movevert = true;
-	//		float fNewHeight = fPlayerH - strafeupspeed * run * deltatime;
-	//		if (fNewHeight > 0.0f && map.getFromHeightMap(int(x),int(y)) < fNewHeight)
-	//		{
-	//			fPlayerH = fNewHeight;
-	//			lookupordown = fCachHorHeight - float(WINDOW_HEIGHT * fPlayerH);
-	//		}
-	//	}
-	//
-	//}
-	//else
-	//{
-	//	if (PGEptr->GetKey(olc::PGUP).bHeld)
-	//	{
-	//		movevert = true;
-	//		float fNewHeight = fPlayerH + strafeupspeed * run * deltatime;
-	//		if (fNewHeight < 1.0f)
-	//		{
-	//			fPlayerH += fNewHeight;
-	//			lookupordown = fCachHorHeight - float(WINDOW_HEIGHT * fPlayerH);
-	//		}
-	//	}
-	//	if (PGEptr->GetKey(olc::PGDN).bHeld)
-	//	{
-	//		movevert = true;
-	//		float fNewHeight = fPlayerH - strafeupspeed * run * deltatime;
-	//		if (fNewHeight > 0.0f)
-	//		{
-	//			fPlayerH = fNewHeight;
-	//			lookupordown = fCachHorHeight - float(WINDOW_HEIGHT * fPlayerH);
-	//		}
-	//	}
-	//}
-
-	if(PGEptr->GetKey(olc::PGUP).bReleased)
-	{
-		movevert = false;
-		
-	}
-	if (PGEptr->GetKey(olc::PGDN).bReleased)
-	{
-		movevert = false;
-		
+	if (fnewX >= 0 && fnewX < map.nMapX &&
+		fnewY >= 0 && fnewY < map.nMapY &&
+		// collision detection criterion - is players height > height of map?
+		float(map.fMap[int(fnewY) * map.nMapX + int(fnewX)]) < fPlayerH) {
+		fPlayerX = fnewX;
+		fPlayerY = fnewY;
 	}
 
 
-	// reset height and lookup factor upon pressing R
-	if (PGEptr->GetKey(olc::R).bReleased) { fPlayerH = 0.5f; lookupordown = 0.0f; }
-}
+	//look up for down
+	fSpeedUp = pge->GetKey(olc::SHIFT).bHeld ? 4.0f : 1.0f;
+	// looking up or down - collision detection not necessary
+	// NOTE - there's no clamping to extreme values (yet)
+	if (pge->GetKey(olc::UP).bHeld) { fLookUp += SPEED_LOOKUP * fSpeedUp * deltatime; }
+	if (pge->GetKey(olc::DOWN).bHeld) { fLookUp -= SPEED_LOOKUP * fSpeedUp * deltatime; }
 
-void Player::movePlayer(float deltatime, Map& map)
-{
-	auto normalizeAngle = [=](float* angle)
-	{
-		*angle = remainder(*angle, TWO_PI);
-		if (*angle < 0) {
-			*angle = TWO_PI + *angle;
+
+
+	//flying
+
+	float fCacheHorHeight = float(pge->ScreenHeight() * fPlayerH) + fLookUp;
+	if (MULTIPLE_LEVELS) {
+		// if the player height is adapted, keep horizon height stable by compensating with look up value
+		if (pge->GetKey(olc::PGUP).bHeld) {
+			fPlayerH += SPEED_STRAFE_UP * fSpeedUp * deltatime;
+			fLookUp = fCacheHorHeight - float(pge->ScreenHeight() * fPlayerH);
 		}
-	};
-
-	// move forward, backwards, turn right and turn left movment code
-	rotationAngle += turnDirection * turnSpeed * deltatime;
-	normalizeAngle(&rotationAngle);
-
-	float moveStep = walkDirection * walkSpeed * deltatime;
-
-	float newPlayerX = x + cos(rotationAngle) * moveStep * run;
-	float newPlayerY = y + sin(rotationAngle) * moveStep * run;
-
-	//wall collision
-	if (!map.mapHasWallAt(newPlayerX, newPlayerY)) {
-		x = newPlayerX;
-		y = newPlayerY;
+		if (pge->GetKey(olc::PGDN).bHeld) {
+			float fNewHeight = fPlayerH - SPEED_STRAFE_UP * fSpeedUp * deltatime;
+			// prevent negative height, and do CD on the height map
+			if (fNewHeight > 0.0f && float(map.fMap[int(fPlayerY) * map.nMapX + int(fPlayerX)]) < fNewHeight) {
+				fPlayerH = fNewHeight;
+				fLookUp = fCacheHorHeight - float(pge->ScreenHeight() * fPlayerH);
+			}
+		}
 	}
-	//strafe left and strafe right movement code
-	float strafeStep = strafedirection * walkSpeed * deltatime;
-
-	float strafePlayerX = 0;
-	float strafePlayerY = 0;
-	if (strafeLeft)
-	{
-		strafePlayerX = x - sin(rotationAngle) * strafeStep;
-		strafePlayerY = y + cos(rotationAngle) * strafeStep;
+	else {
+		if (pge->GetKey(olc::PGUP).bHeld) {
+			float fNewHeight = fPlayerH + SPEED_STRAFE_UP * fSpeedUp * deltatime;
+			if (fNewHeight < 1.0f) {
+				fPlayerH = fNewHeight;
+				// compensate look up value so that horizon remains stable
+				fLookUp = fCacheHorHeight - float(pge->ScreenHeight() * fPlayerH);
+			}
+		}
+		if (pge->GetKey(olc::PGDN).bHeld) {
+			float fNewHeight = fPlayerH - SPEED_STRAFE_UP * fSpeedUp * deltatime;
+			if (fNewHeight > 0.0f) {
+				fPlayerH = fNewHeight;
+				// compensate look up value so that horizon remains stable
+				fLookUp = fCacheHorHeight - float(pge->ScreenHeight() * fPlayerH);
+			}
+		}
 	}
-	if(strafeRight)
-	{
-		strafePlayerX = x + sin(rotationAngle) * strafeStep;
-		strafePlayerY = y - cos(rotationAngle) * strafeStep;
-	}
-
-	if (!map.mapHasWallAt(strafePlayerX, strafePlayerY))
-	{
-		x = strafePlayerX;
-		y = strafePlayerY;
-	}
-
-	//look up and look down cod
-}
-
-void Player::renderMapPlayer(olc::PixelGameEngine* PGEptr)
-{
-	olc::Pixel p = olc::CYAN;
-	PGEptr->FillRect(
-		x * MINIMAP_SCALE_FACTOR,
-		y * MINIMAP_SCALE_FACTOR,
-		width * MINIMAP_SCALE_FACTOR,
-		height * MINIMAP_SCALE_FACTOR,
-		p
-	);
 }

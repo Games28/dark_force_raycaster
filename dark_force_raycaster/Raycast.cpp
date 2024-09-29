@@ -1,317 +1,117 @@
 #include "Raycast.h"
 
-void Raycast::castAllRays(olc::PixelGameEngine* pge,Player& player, Map& map)
+bool Raycast::CastRay(Player& player, Map& map, float rayAngle, std::vector<IntersectInfo>& vHitList)
 {
-	for (int col = 0; col < NUM_RAYS; col++) {
-		float rayAngle = player.rotationAngle + (col - NUM_RAYS / 2) / (float)(NUM_RAYS)*FOV_ANGLE;
-		castRay(pge,rayAngle, col, player, map);
-	}
-}
+    float fFromX = player.fPlayerX;
+    float fFromY = player.fPlayerY;
+    // Calculate the "to point" using the player's angle and fMaxDistance
+    float fToX = player.fPlayerX + map.fMaxDistance * cos(rayAngle * PI / 180.0f);
+    float fToY = player.fPlayerY + map.fMaxDistance * sin(rayAngle * PI / 180.0f);
+    // work out normalized direction vector (fDX, fDY)
+    float fDX = fToX - fFromX;
+    float fDY = fToY - fFromY;
+    float fRayLen = sqrt(fDX * fDX + fDY * fDY);
+    fDX /= fRayLen;
+    fDY /= fRayLen;
 
-void Raycast::castRay(olc::PixelGameEngine* pge, float rayAngle, int stripID, Player& player, Map& map)
-{
+    // calculate the scaling factors for the ray increments per unit in x resp y direction
+    // this calculation takes division by 0.0f into account
+    float fSX = (fDX == 0.0f) ? FLT_MAX : sqrt(1.0f + (fDY / fDX) * (fDY / fDX));
+    float fSY = (fDY == 0.0f) ? FLT_MAX : sqrt(1.0f + (fDX / fDY) * (fDX / fDY));
 
-    //testing 
-    
-	auto normalizeAngle = [=](float* angle)
-	{
-		*angle = remainder(*angle, TWO_PI);
-		if (*angle < 0) {
-			*angle += TWO_PI;
-		}
-	};
+    // work out if line is going right or left resp. down or up
+    int nGridStepX = (fDX > 0.0f) ? +1 : -1;
+    int nGridStepY = (fDY > 0.0f) ? +1 : -1;
 
+    float fLengthPartialRayX = 0.0f;
+    float fLengthPartialRayY = 0.0f;
 
-	auto distanceBetweenPoints = [=](float x1, float y1, float x2, float y2)
-	{
-		return sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
-	};
+    int nCurX = int(fFromX);
+    int nCurY = int(fFromY);
 
-	// preparation for the DDA algo: clear the hit list for this ray, normalize the angle and set the ray direction booleans
-	rays[stripID].listinfo.clear();
-
-    for (int i = 0; i < 4; i++)
-    {
-        
-
-        normalizeAngle(&rayAngle);
-        float fRayAngleTan = tan(rayAngle);
-        float angl = 3.14159 / 180;
-        //turn in to functions bool below
-        bool isRayFacingDn = rayAngle > 0 && rayAngle < PI;
-        bool isRayFacingUp = !isRayFacingDn;
-        bool isRayFacingRt = rayAngle < 0.5 * PI || rayAngle > 1.5 * PI;
-        bool isRayFacingLt = !isRayFacingRt;
-        bool isRayDown = rayAngle > 45 * (3.14159 / 180) && rayAngle < 135 * (3.14159 / 180);
-        bool isRayUp = rayAngle > 225 * (3.14159 / 180) && rayAngle < 315 * (3.14159 / 180);
-        bool isRayRight = rayAngle < 45 * (3.14159 / 180) || rayAngle > 315 * (3.14159 / 180);
-        bool isRayLeft = rayAngle > 135 * (3.14159 / 180) && rayAngle < 225 * (3.14159 / 180);
-
-        // these variables will hold the current intersection point and the x and y step values
-        float xintercept, yintercept;
-        float xstep, ystep;
-        int facevalue;
-
-        ///////////////////////////////////////////
-        // HORIZONTAL RAY-GRID INTERSECTION CODE
-        ///////////////////////////////////////////
-
-        // This part of the analysis focuses on the intersections with the horizontal grid lines.
-        // This implies that the y-step (in var. ystep) is +/- TILE_SIZE, and the y coordinate (in yintercept)
-        // will always be a multiple of TILE_SIZE
-
-        // Find the y-coordinate of the closest horizontal grid intersection
-        yintercept = int(player.y / TILE_SIZE) * TILE_SIZE;
-        yintercept += isRayFacingDn ? TILE_SIZE : 0;
-
-        // Find the x-coordinate on the closest horizontal grid intersection
-        xintercept = player.x + (yintercept - player.y) / fRayAngleTan;
-
-        // temp fix - tan( angle ) can get very small so that xIntercept gets very big
-        // NOTE: this blunt fix may cause glitches in the rendering
-        if (xintercept < 0.0f) xintercept = 0.0f;
-        if (xintercept > MAP_NUM_COLS * TILE_SIZE) xintercept = MAP_NUM_COLS * TILE_SIZE;
-
-        // Calculate the increments xstep and ystep
-        ystep = TILE_SIZE * (isRayFacingUp ? -1 : 1);
-
-        xstep = TILE_SIZE / fRayAngleTan;
-        //working
-
-        xstep *= (isRayFacingLt && xstep > 0) ? -1 : 1;
-        xstep *= (isRayFacingRt && xstep < 0) ? -1 : 1;
-
-
-
-        // start DDA loop - assumption is that the player is inside the map
-        if (!map.isInsideMap(xintercept, yintercept)) {
-            std::cout << "WARNING: Raycast::CastRay() --> initial location for HORIZONTAL grid line analysis is outside map boundaries..." << std::endl;
-        }
-
-        // Increment xstep and ystep until analysis gets out of bounds
-        while (map.isInsideMap(xintercept, yintercept))
-        {
-            // work out grid (tile) coordinates to check the map
-            int nXtoCheck = int(xintercept / TILE_SIZE);
-            int nYtoCheck = int(yintercept / TILE_SIZE) + (isRayFacingUp ? -1 : 0);
-
-            // determine the height of the next adjacent tile. If there's no next tile
-            // because analysis arrived at boundary of the map, set height to 0
-           float nextHeight;
-            int blocktype = 0;
-            if (map.isOnMapBoundary(xintercept, yintercept)) {
-                nextHeight = 0;
-
-            }
-            else {
-                 nextHeight = map.getFromHeightMap(nXtoCheck, nYtoCheck, i + 1);
-                blocktype = map.getBlockType(nXtoCheck, nYtoCheck, i + 1);
-                
-            }
-
-
-            // just store each grid intersection point in the list - this brute force was necessary to debug the code
-            intersectInfo hitInfo;
-            hitInfo.wallHitX = xintercept;
-            hitInfo.wallHitY = yintercept;
-            hitInfo.mapX = nXtoCheck;
-            hitInfo.mapY = nYtoCheck;
-           
-            if (blocktype == 0)
-            {
-                int u = 0;
-            }
-            hitInfo.blocktype = blocktype;
-            hitInfo.height = nextHeight;
-
-
-            hitInfo.wasHitVertical = false;
-            hitInfo.distance = distanceBetweenPoints(player.x, player.y, xintercept, yintercept);
-            hitInfo.maplevel = i + 1;
-            // only needed for debugging
-            hitInfo.rayUp = isRayFacingUp;
-            hitInfo.rayDn = isRayFacingDn;
-            hitInfo.rayLt = isRayFacingLt;
-            hitInfo.rayRt = isRayFacingRt;
-
-            rays[stripID].listinfo.push_back(hitInfo);
-
-            // advance to next horizontal grid line
-            xintercept += xstep;
-            yintercept += ystep;
-        }
-
-        ///////////////////////////////////////////
-        // VERTICAL RAY-GRID INTERSECTION CODE
-        ///////////////////////////////////////////
-
-        // This part of the analysis focuses on the intersections with the vertical grid lines.
-        // This implies that the x-step (in var. xstep) is +/- TILE_SIZE, and the x coordinate (in xintercept)
-        // will always be a multiple of TILE_SIZE
-
-        // Find the x-coordinate of the closest vertical grid intersection
-        xintercept = int(player.x / TILE_SIZE) * TILE_SIZE;
-        xintercept += isRayFacingRt ? TILE_SIZE : 0;
-
-        // Find the y-coordinate on the closest vertical grid intersection
-        yintercept = player.y + (xintercept - player.x) * fRayAngleTan;
-
-        // temp fix - tan( angle ) can get very big so that yIntercept gets very big
-        // NOTE: this blunt fix may cause glitches in the rendering
-        if (yintercept < 0.0f) yintercept = 0.0f;
-        if (yintercept > MAP_NUM_ROWS * TILE_SIZE) yintercept = MAP_NUM_ROWS * TILE_SIZE;
-
-        // Calculate the increments xstep and ystep
-        xstep = TILE_SIZE * (isRayFacingLt ? -1 : 1);
-
-        ystep = TILE_SIZE * fRayAngleTan;
-        //working
-
-        ystep *= (isRayFacingUp && ystep > 0) ? -1 : 1;
-        ystep *= (isRayFacingDn && ystep < 0) ? -1 : 1;
-
-
-
-
-        // start DDA loop - assumption is that the player is inside the map
-        if (!map.isInsideMap(xintercept, yintercept)) {
-            std::cout << "WARNING: Raycast::CastRay() --> initial location for VERTICAL grid line analysis is outside map boundaries..." << std::endl;
-        }
-
-        // Increment xstep and ystep until analysis gets out of bounds
-        while (map.isInsideMap(xintercept, yintercept))
-        {
-            // work out grid (tile) coordinates to check the map
-            int nXtoCheck = int(xintercept / TILE_SIZE) + (isRayFacingLt ? -1 : 0);
-            int nYtoCheck = int(yintercept / TILE_SIZE);
-
-            // determine the height of the next adjacent tile. If there's no next tile
-            // because analysis arrived at boundary of the map, set height to 0
-            float nextHeight;
-            int blocktype = 0;
-            if (map.isOnMapBoundary(xintercept, yintercept)) {
-                nextHeight = 0;
-
-            }
-            else {
-                nextHeight = map.getFromHeightMap(nXtoCheck, nYtoCheck, i+ 1);
-                blocktype = map.getBlockType(nXtoCheck, nYtoCheck, i + 1);
-              
-               
-            }
-
-
-
-            // just store each grid intersection point in the list - this brute force was necessary to debug the code
-            intersectInfo hitInfo;
-            hitInfo.wallHitX = xintercept;
-            hitInfo.wallHitY = yintercept;
-            hitInfo.mapX = nXtoCheck;
-            hitInfo.mapY = nYtoCheck;
-
-            if (blocktype == 0)
-            {
-                int u = 0;
-           }
-            hitInfo.blocktype = blocktype;
-            hitInfo.height = nextHeight;
-            hitInfo.wasHitVertical = true;
-            hitInfo.distance = distanceBetweenPoints(player.x, player.y, xintercept, yintercept);
-            hitInfo.maplevel = i + 1;
-
-
-            // only needed for debugging
-
-            hitInfo.rayUp = isRayFacingUp;
-            hitInfo.rayDn = isRayFacingDn;
-            hitInfo.rayLt = isRayFacingLt;
-            hitInfo.rayRt = isRayFacingRt;
-
-            rays[stripID].listinfo.push_back(hitInfo);
-
-            // advance to next vertical grid line
-            xintercept += xstep;
-            yintercept += ystep;
-        }
-
-       
+    // work out the first intersections with the grid
+    if (nGridStepX < 0) { // ray is going left - get scaled difference between start point and left cell border
+        fLengthPartialRayX = (fFromX - float(nCurX)) * fSX;
     }
-        // sort the hist list in order of increasing distance
+    else {              // ray is going right - get scaled difference between right cell border and start point
+        fLengthPartialRayX = (float(nCurX + 1.0f) - fFromX) * fSX;
+    }
+    if (nGridStepY < 0) { // ray is going up - get scaled difference between start point and top cell border
+        fLengthPartialRayY = (fFromY - float(nCurY)) * fSY;
+    }
+    else {              // ray is going down - get scaled difference between bottom cell border and start point
+        fLengthPartialRayY = (float(nCurY + 1.0f) - fFromY) * fSY;
+    }
 
-    
-   
+    // check whether analysis got out of map boundaries
+    bool bOutOfBounds = (nCurX < 0 || nCurX >= map.nMapX ||
+        nCurY < 0 || nCurY >= map.nMapY);
+    // did analysis reach the destination cell?
+    bool bDestCellFound = (nCurX == int(fToX) && nCurY == int(fToY));
 
+    float fDistIfFound = 0.0f;  // accumulates distance of analysed piece of ray
+    float   nCurHeight = 0.0f;       // to check on differences in height
 
-        bool bRunUp = true;
-        int nHeightTracker = 0;
-        std::vector<intersectInfo> tempList(rays[stripID].listinfo);   // copy hit list to a temporary list
-        rays[stripID].listinfo.clear();                                         // clear hit list
+    while (!bOutOfBounds && !bDestCellFound && fDistIfFound < map.fMaxDistance) {
 
-        for (int i = 0; i < (int)tempList.size(); i++) {
-            // this is to remove all unnecessary "hit" points with height 0 at the start of the list
-            if (bRunUp) {
-                if (tempList[i].height > 0) {
-                    bRunUp = false;
-                }
-            }
-            // this is to remove all unnecessary in between hit points where the height doesn't change
-            if (!bRunUp) {
-                if (tempList[i - 1].height != nHeightTracker) {
-                    nHeightTracker = tempList[i].height;
-                    // keep only hit points where the height differs from what it was before
-                    rays[stripID].listinfo.push_back(tempList[i]);
-                }
+        // advance to next map cell, depending on length of partial ray's
+        if (fLengthPartialRayX < fLengthPartialRayY) {
+            // continue analysis in x direction
+            nCurX += nGridStepX;
+            fDistIfFound = fLengthPartialRayX;
+            fLengthPartialRayX += fSX;
+        }
+        else {
+            // continue analysis in y direction
+            nCurY += nGridStepY;
+            fDistIfFound = fLengthPartialRayY;
+            fLengthPartialRayY += fSY;
+        }
+
+        bOutOfBounds = (nCurX < 0 || nCurX >= map.nMapX ||
+            nCurY < 0 || nCurY >= map.nMapY);
+        if (bOutOfBounds) {
+            bDestCellFound = false;
+
+            // If out of bounds, finalize the list with one additional intersection with the map boundary and height 0.
+            // (only if the list is not empty!) This additional intersection record is necessary for proper rendering at map boundaries.
+            if (nCurHeight != 0 && !vHitList.empty()) {
+
+                nCurHeight = 0;  // since we're out of bounds
+
+                // put the collision info in a new IntersectInfo node and push it up the hit list
+                IntersectInfo sInfo;
+                sInfo.front_Distance = fDistIfFound;
+                sInfo.fHitX = fFromX + fDistIfFound * fDX;
+                sInfo.fHitY = fFromY + fDistIfFound * fDY;
+                sInfo.nMapCoordX = nCurX;
+                sInfo.nMapCoordY = nCurY;
+                sInfo.nHeight = nCurHeight;
+                vHitList.push_back(sInfo);
             }
         }
-        
+        else {
+            // check if there's a difference in height found
+            bool bHitFound = (map.fMap[nCurY * map.nMapX + nCurX] != nCurHeight);
+            bDestCellFound = (nCurX == int(fToX) && nCurY == int(fToY));
 
-        std::sort(
-            rays[stripID].listinfo.begin(),
-            rays[stripID].listinfo.end(),
-            [](intersectInfo& a, intersectInfo& b) {
-                return (a.distance > b.distance) || (a.distance == b.distance && a.maplevel < b.maplevel);
+            if (bHitFound) {
+
+                // reset current height to new value
+                nCurHeight =  map.fMap[nCurY * map.nMapX + nCurX];
+
+                // put the collision info in a new IntersectInfo node and push it up the hit list
+                IntersectInfo sInfo;
+                sInfo.front_Distance = fDistIfFound;
+                sInfo.fHitX = fFromX + fDistIfFound * fDX;
+                sInfo.fHitY = fFromY + fDistIfFound * fDY;
+                sInfo.nMapCoordX = nCurX;
+                sInfo.nMapCoordY = nCurY;
+                sInfo.nHeight = nCurHeight;
+                vHitList.push_back(sInfo);
             }
-        );
-        int u = 0;
-}
-
-void Raycast::renderMapRays(olc::PixelGameEngine* PGEptr, Player& player, int testRay)
-{
-	//olc::Pixel p = olc::GREEN;
-	//for (int i = 0; i < NUM_RAYS; i++) {
-    //
-    //    // get first hitpoint with elevation (height > 0)
-    //    int useIndex = -1;
-    //    for (int j = 0; j < (int)rays[i].listinfo.size() && (useIndex == -1); j++)
-    //        if (rays[i].listinfo[j].height > 0)
-    //            useIndex = j;
-    //    // set to boundary hit if no point was found
-    //    if (useIndex == -1) {
-    //        useIndex = rays[i].listinfo.size() - 1;
-    //    }
-    //    if (useIndex >= 0) {
-    //        PGEptr->DrawLine(
-    //            player.x * MINIMAP_SCALE_FACTOR,
-    //            player.y * MINIMAP_SCALE_FACTOR,
-    //            rays[i].listinfo[useIndex].wallHitX * MINIMAP_SCALE_FACTOR,
-    //            rays[i].listinfo[useIndex].wallHitY * MINIMAP_SCALE_FACTOR,
-    //            (i == NUM_RAYS / 2) ? olc::MAGENTA : olc::GREEN
-    //        );
-    //    }
-    //  
-	//}
-	
-}
-
-void Raycast::DrawDepth(olc::PixelGameEngine* pge, float fDepth, int x, int y, olc::Pixel col)
-{
-    if (x >= 0 && x < WINDOW_WIDTH &&
-        y >= 0 && y < WINDOW_HEIGHT)
-    {
-        if (fDepth <= Depthbuffer[(y * WINDOW_WIDTH) + x])
-        {
-            Depthbuffer[y * WINDOW_WIDTH + x] = fDepth;
-            pge->Draw(x, y, col);
         }
     }
+
+    return (vHitList.size() > 0);
 }

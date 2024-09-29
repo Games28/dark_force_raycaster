@@ -2,41 +2,29 @@
 #define SPRITE_H
 #include "olcPixelGameEngine.h"
 #include "Player.h"
-#include "defs.h"
-#include "Raycast.h"
+#include "Map.h"
 
-struct sprite_t
+struct sprite_object
 {
 	float x, y;
-	int texture;
-	float distance;
-	float angle;
-	bool visible;
-	bool inSight;
+	float scale;
+	olc::Sprite* sprite;
+	float distance, angle;
 };
 
 
-class Sprite
+class SpriteManager
 {
 public:
-	Sprite() = default;
-	
-	void initSpriteinfo();
-	void initsprites();
-	void calculateBottomandTop(Player& player, float distance,float& SHeight, float& SWidth, int halfheight, float& ceiling, float& floor);
-	void SpriteProjection(olc::PixelGameEngine* PGEptr, Raycast& rays, Player& player);
-	void mapSprites(olc::PixelGameEngine* PGEptr);
-
+	SpriteManager() = default;
+	void init();
+	void Render(olc::PixelGameEngine* pge,Player& player, Map& map);
+	float deg2rad(float fAngleDeg) { return fAngleDeg * PI / 180.0f; }
+	float rad2deg(float fAngleRad) { return fAngleRad / PI * 180.0f; }
 public:
-	sprite_t sprites[NUM_SPRITES];
-	olc::Sprite* spriteptr[NUM_SPRITES];
-	int vertposition = 0;
-	int vertlook = 0;
-	int heightoffset = 0;
-	int lookoffset = 0;
+	std::vector<sprite_object> Sobjects;
+	
 };
 
-
 #endif // !SPRITE_H
-
 
